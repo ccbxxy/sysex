@@ -1,0 +1,99 @@
+# yamaha,reface,,,,,,,,,
+,,,,,,,,,,
+]reface_Proto,Protocol,,,,,,,,,
+*,op,...,...,...,...,...,...,...,...,string
+,BULK RQ,,,,,,,,,[2n :group :model_id :addr]
+,BULK DUMP,,,,,,,,,[0n :group :count_hi :count_lo :model_id :addr ]:map :sum]
+,PARAM RQ,,,,,,,,,[3n :group :model_id :addr]
+,PARAM SET,,,,,,,,,[1n :group :model_id :addr ]:map]
+,,,,,,,,,,
+]refaceCP_Map,,,,,,,,,,
+,refaceCP,cp.sys,[00 00 00],1,0,refaceSystem,,,,
+,refaceCP,part,[30 00 00],1,0,refaceCP,,,,
+,refaceCS,cs.sys,[00 00 00],1,0,refaceSystem,,,,
+,refaceCS,part,[30 00 00],1,0,refaceCS,,,,
+,refaceDX,ds.sys,[00 00 00],1,0,]refaceSystem,,,,
+,refaceDX,part,[30 00 00],1,0,refaceDXPart,,,,
+,refaceDX,op,[31 00 00],4,[01 00],refaceDXOp,,,,
+,refaceYC,yc.sys,[00 00 00],1,0,refaceSystem,,,,
+,refaceYC,part,[30 00 00],1,0,refaceYC,,,,
+,FCB1010,patch,[00 00 00],100,10h,FCB1010,,,,
+,,,,,,,,,,
+]refaceSystem,,,,,,,,,,
+*,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[00 00 00],,,,,,,,
+,sys.tx.chan,00h,1,cp;cs;dx;yc,MIDI Transmit Channel,0..15;127,MIDI7,1,0,1..16;off
+,sys.rx.chan,01h,1,cp;cs;dx;yc,MIDI Receive Channel,0..15;127,MIDI7,1,0,1..16;off
+,sys.tune,02h,1,cp;cs;dx;yc,Master Tune,0..2047,NYBBLE,0.1,-1024,cents
+,sys.sw.local_ctrl,06h,1,cp;cs;dx;yc,Local Control,0;1,MIDI7,1,0,off;on
+,sys.transpose,07h,1,cp;cs;dx;yc,Master Transpose,43h..5Ch,MIDI7,1,-12,-12..+12 semitones
+,sys.tempo,08h,2,cs;dx,Tempo,30..300,MIDI7,1,0,bpm
+,sys.lcd.contrast,0Ah,1,dx,LCD Contrast,0..63,MIDI7,1,0,
+,sys.sw.ped.0.type,0Bh,1,cp;dx,Sus Pedal Type,0;1,MIDI7,1,0,fc3;fc4/5
+,sys.sw.apo,0Ch,1,cp;cs;dx;yc,Auto Power Off,0;1,MIDI7,1,0,off;on
+,sys.sw.speaker,0Dh,1,cp;cs;dx;yc,Speaker On/Off,0;1,MIDI7,1,0,off;on
+,sys.sw.midi_ctrl,0Eh,1,cp;cs;dx;yc,Midi Control On/Off,0;1,MIDI7,1,0,off;on
+,sys.pb.range,0Fh,1,cp;cs,Pitch Bend Range,28h..56h,MIDI7,1,-24,-24..+24 semitones
+,sys.sw.ped.0.func,14h,1,cp;cs,Foot Volume/Sustain,0;1,MIDI7,1,0,vol;sus
+,,,,,,,,,,
+,,,,,,,,,,
+]refaceCP,,,,,,,,,,
+*,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[30 00 00],,,,,,,,
+,,,,,,,,,,
+]refaceCS,,,,,,,,,,
+*,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[30 00 00],,,,,,,,
+,part.volume,00h,1,cs,Volume,0..127,MIDI7,1,0,0..127
+,reserved,01h,1,cs,Reserved,None,None,None,None,None
+,part.lfo.assign,02h,1,cs,LFO Assign,0;1;2;3;4,MIDI7,1,0,off;amp;filter;pitch;osc
+,part.lfo.depth,03h,1,cs,LFO Depth,0..127,MIDI7,1,0,0..127
+,part.lfo.speed,04h,1,cs,LFO Speed,0..127,MIDI7,1,0,0..127
+,part.portamento,05h,1,cs,Portamento,0;1..127,MIDI7,1,0,poly;mono_time
+,part.osc.type,06h,1,cs,Oscillator Type,0;1;2;3;4,MIDI7,1,0,multisaw;pulse;osc_sync;ring_mod;FM
+,part.osc.texture,07h,1,cs,Oscillator Texture,0..127,MIDI7,1,0,0..127
+,part.osc.modulation,08h,1,cs,Oscillator Modulation,0..127,MIDI7,1,0,0..127
+,part.filter.0.cutoff,09h,1,cs,Filter Cutoff,0..127,MIDI7,1,0,0..127
+,part.filter.0.resonance,0Ah,1,cs,Filter Resonance,0..127,MIDI7,1,0,0..127
+,part.eg.0.amp_to_filter,0Bh,1,cs,EG Balance,0..127,MIDI7,1,0,AEGmax..FEGmax
+,part.eg.0.attack,0Ch,1,cs,EG Attack,0..127,MIDI7,1,0,0..127
+,part.eg.0.decay,0Dh,1,cs,EG Decay,0..127,MIDI7,1,0,0..127
+,part.eg.0.sustain,0Eh,1,cs,EG Sustain,0..127,MIDI7,1,0,0..127
+,part.eg.0.release,0Fh,1,cs,EG Release,0..127,MIDI7,1,0,0..127
+,part.fx.0.type,10h,1,cs,Effect Type,0;1;2;3;4,MIDI7,1,0,dist;cho;fla;pha;del;off
+,part.fx.0.depth,11h,1,cs,Effect Depth,0..127,MIDI7,1,0,0..127
+,part.fx.0.rate,12h,1,cs,Effect Rate,0..127,MIDI7,1,0,0..127
+,,,,,,,,,,
+,,,,,,,,,,
+]refaceDXPart,,,,,,,,,,
+,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[30 00 00],,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+]refaceDXOp,,,,,,,,,,
+,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[31 00 00],,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+]refaceYC,,,,,,,,,,
+,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[30 00 00],,,,,,,,
+,part.volume,00h,1,yc,Volume,0..127,MIDI7,1,0,0..127
+,part.voice,02h,1,yc,Voice,0..4,MIDI7,1,0,ham;vox;far;ace;yc
+,part.org.draw.1,03h,1,yc,Drawbar 16’,0..6,MIDI7,1,0,0..6
+,part.org.draw.2,04h,1,yc,Drawbar 5 1/3’,0..6,MIDI7,1,0,0..6
+,part.org.draw.3,05h,1,yc,Drawbar 8’,0..6,MIDI7,1,0,0..6
+,part.org.draw.4,06h,1,yc,Drawbar 4’,0..6,MIDI7,1,0,0..6
+,part.org.draw.5,07h,1,yc,Drawbar 2 2/3’,0..6,MIDI7,1,0,0..6
+,part.org.draw.6,08h,1,yc,Drawbar 2’,0..6,MIDI7,1,0,0..6
+,part.org.draw.7,09h,1,yc,Drawbar 1 3/5’,0..6,MIDI7,1,0,0..6
+,part.org.draw.8,0Ah,1,yc,Drawbar 1 1/3’,0..6,MIDI7,1,0,0..6
+,part.org.draw.9,0Bh,1,yc,Drawbar 1’,0..6,MIDI7,1,0,0..6
+,part.org.cv.sw,0Ch,1,yc,Vibrato/Chorus,0;1,MIDI7,1,0,vib;cho
+,part.org.cv.depth,0Dh,1,yc,Vib/Cho Depth,0..4,MIDI7,1,0,0..4
+,part.org.perc.sw,0Eh,1,yc,Percussion On/Off,0;1,MIDI7,1,0,off;on
+,part.org.perc.harm,0Fh,1,yc,Percussion Harmonic,0;1,MIDI7,1,0,2nd;3rd
+,part.org.perc.length,10h,1,yc,Percussion Length,0..4,MIDI7,1,0,0..4
+,part.org.rotary.speed,11h,1,yc,Rotary,0;1;2;3,MIDI7,1,0,off;stop;slow;fast;first
+,part.distortion.level,12h,1,yc,Distortion,0..127,MIDI7,1,0,0..127
+,part.reverb.level,13h,1,yc,Reverb Level,0..127,MIDI7,1,0,0..127
