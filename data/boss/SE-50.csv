@@ -1,0 +1,11 @@
+,,,,,,,,,,
+]SE50_System,,,,,,,,,,
+*,id,offset,count,name,table,,,,,
+,sys.map.pc,00h,128,Prog Change Mapping,SE50_Params,,,,,
+,sys.sw.start,[01 00],1,Switch Shift Start,SE50_Params,,,,,
+,sys.sw.end,[01 01],1,Switch Shift End,SE50_Params,,,,,
+,,,,,,,,,,
+]SE50_Params,,,,,,,,,,
+*,id,bytec,engine,name,range,render,scale,offset,mask,units
+,sys.map,1,sys,Prog Change Map,0..127,MIDI7,1,0,7Fh,0..127 pc
+,sys.sw,1,sys,Switch Limit,0..127,MIDI7,1,0,7Fh,0..127 pc

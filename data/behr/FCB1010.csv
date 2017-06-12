@@ -1,0 +1,41 @@
+,,,,,,,,,,
+,,,,,,,,,,
+]FCB1010,Params,,,,,,,,,
+*,id,offset,bytec,engine,name,range,render,scale,shift,units
+,,[00 00 00],,,,,,,,
+,button.1.pc,00h,1,,Button 1 PC,0..127,,1,,program number
+,button.2.pc,01h,1,,Button 2 PC,0..127,,1,,program number
+,button.3.pc,02h,1,,Button 3 PC,0..127,,1,,program number
+,button.4.pc,03h,1,,Button 4 PC,0..127,,1,,program number
+,button.5.pc,04h,1,,Button 5 PC,0..127,,1,,program number
+,button.6.cc,05h,1,,Button 6 CC,0..127,,1,,cc number
+,button.6.cc.val.sw1,06h,1,,Button 6 CC Value,0..127;0..128,UINT8,1;>>7,&7Fh;&80h,cc value;sw1 enable
+,button.7.cc,07h,1,,Button 7 CC,0..127,,1,,cc number
+,button.7.cc.val.sw2,08h,1,,Button 7 CC Value,0..127;0..128,UINT8,1;>>7,&7Fh;&80h,cc value;sw1 enable
+,exp.cc,09h,1,,Expression A CC,0..127,,1,,cc number
+,exp.cc.min,0Ah,1,,Expression A CC Min,0..127,,1,,cc value
+,exp.cc.max,0Bh,1,,Expression A CC Max,0..127,,1,,cc value
+,exp.cc,0Ch,1,,Expression B CC,0..127,,1,,cc number
+,exp.cc.min,0Dh,1,,Expression B CC Min,0..127,,1,,cc value
+,exp.cc.max,0Eh,1,,Expression B CC Max,0..127,,1,,cc value
+,button.note,0Fh,1,,Button 10 Note Number,0..127,,1,,note number
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+]PROPERTIES,name,type,id,x_loc,y_loc,height,width,sends,label,
+,FCB1010,button,Button.1,0,0,2,1,pc:relay,Prog Chg 1\n[Switch 1],
+,FCB1010,button,Button.2,0,2,2,1,pc:relay,Prog Chg 2\n[Switch 2],
+,FCB1010,button,Button.3,0,4,2,1,pc,Prog Chg 3,
+,FCB1010,button,Button.4,0,6,2,1,pc,Prog Chg 4,
+,FCB1010,button,Button.5,0,8,2,1,pc,Prog Chg 5,
+,FCB1010,button,Button.6,2,1,2,1,cc:fixed,Cnt 1,
+,FCB1010,button,Button.7,2,3,2,1,cc:fixed,Cnt 2,
+,FCB1010,button,Button.8,2,5,2,1,None,Exp 1,
+,FCB1010,button,Button.9,2,7,2,1,None,Exp 2,
+,FCB1010,button,Button.10,2,9,2,1,note,Note\nDirect Sel,
+,FCB1010,button,Button.dn,0,11,2,1,None,,
+,FCB1010,button,Button.up,2,11,2,1,None,,
+,FCB1010,expression,Exp.A,0,13,4,3,cc:var,Expression Pedal A,
+,FCB1010,expression,Exp.B,0,17,4,3,cc:var,Expression Pedal A,
