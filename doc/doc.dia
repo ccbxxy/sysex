@@ -948,14 +948,14 @@
     </dia:object>
     <dia:object type="Standard - ZigZagLine" version="1" id="O34">
       <dia:attribute name="obj_pos">
-        <dia:point val="20,13"/>
+        <dia:point val="20,13.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="19.95,7.6691;24.1118,13.05"/>
+        <dia:rectangle val="19.95,7.6691;24.1118,13.55"/>
       </dia:attribute>
       <dia:attribute name="orth_points">
-        <dia:point val="20,13"/>
-        <dia:point val="22,13"/>
+        <dia:point val="20,13.5"/>
+        <dia:point val="22,13.5"/>
         <dia:point val="22,8"/>
         <dia:point val="24,8"/>
       </dia:attribute>
@@ -1235,6 +1235,40 @@
       <dia:connections>
         <dia:connection handle="0" to="O38" connection="4"/>
         <dia:connection handle="1" to="O40" connection="3"/>
+      </dia:connections>
+    </dia:object>
+    <dia:object type="Standard - ZigZagLine" version="1" id="O45">
+      <dia:attribute name="obj_pos">
+        <dia:point val="20,13"/>
+      </dia:attribute>
+      <dia:attribute name="obj_bb">
+        <dia:rectangle val="19.95,1.6691;24.1118,13.05"/>
+      </dia:attribute>
+      <dia:attribute name="orth_points">
+        <dia:point val="20,13"/>
+        <dia:point val="21.5,13"/>
+        <dia:point val="21.5,2"/>
+        <dia:point val="24,2"/>
+      </dia:attribute>
+      <dia:attribute name="orth_orient">
+        <dia:enum val="0"/>
+        <dia:enum val="1"/>
+        <dia:enum val="0"/>
+      </dia:attribute>
+      <dia:attribute name="autorouting">
+        <dia:boolean val="false"/>
+      </dia:attribute>
+      <dia:attribute name="end_arrow">
+        <dia:enum val="1"/>
+      </dia:attribute>
+      <dia:attribute name="end_arrow_length">
+        <dia:real val="0.5"/>
+      </dia:attribute>
+      <dia:attribute name="end_arrow_width">
+        <dia:real val="0.5"/>
+      </dia:attribute>
+      <dia:connections>
+        <dia:connection handle="1" to="O38" connection="3"/>
       </dia:connections>
     </dia:object>
   </dia:layer>
