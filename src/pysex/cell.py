@@ -2,6 +2,16 @@
 
 ''' cell.py
       cell classes
+
+    Cell: base class
+        for scalars: int, float, string, True, False, None
+      RangeCell:
+          for integer ranges, evaluates to range() iterator
+      ListCell:
+          for value enumerations, evaluates to a list
+      SubstCell:
+          for '(...)' substitutions    
+
 '''
 
 import re
@@ -14,23 +24,64 @@ def encast(val, number=False, base=10):
         - return: val or val cast to float, int, False, True or None
     '''
     try:
-        return int(val, base)
+        if isinstance(val, str):
+            return int(val, base)
     except ValueError:
         pass
 
     try:
+        if not isinstance(val, str):
+            raise ValueError()
         return float(val)
     except ValueError:
         if number:
             raise ValueError()
 
     try:
-        return {'True': True, 'False': False, 'None': None}[val]
+        return {
+            'True': True,
+            'true': True,
+            'False': False,
+            'false': False,
+            'None': None,
+            'none': None
+        }[val]
     except KeyError:
-        pass
+        return val
+    except TypeError:
+        return val
 
-    return val
+class CellIterator(object):
+    ''' iterator class for parsing cell tokens
+    '''
+    def __init__(self, loc, buf):
+        self._loc = loc
+        self._buf = buf
 
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        ''' yield next argument of a substitution
+            - loc: [f, r, c] of cell
+            - buf: cell text
+            - yield: next token if available
+            - return: only when buf is exhausted
+        '''
+        self._buf = self._buf.lstrip()
+        if self._buf.startswith(')'):
+            self._buf = self._buf[1:]
+    
+        if len(self._buf) == 0:
+            raise StopIteration
+
+        if self._buf.startswith('('):
+            return SubstCell(self._loc, self._buf[1:])
+
+        mat = re.match(r"[^)\s]+", self._buf)
+        result = self._buf[mat.start():mat.end()]
+        self._buf = self._buf[mat.end():]
+        return result
 
 class Cell(object):
     ''' A Cell in our model
@@ -43,7 +94,7 @@ class Cell(object):
             - raise: ValueError on transitive '..'
             - return: an instance of a Cell subclass
         '''
-        buf = buf.lstrip.rstrip()
+        buf = buf.lstrip().rstrip()
 
         if buf.startswith('@'):
             # literal cell
@@ -54,8 +105,10 @@ class Cell(object):
 
         parts = buf.split(';')
         if len(parts) > 1:
-            return ListCell(
-                loc, [Cell.factory(loc, part) for part in parts])
+            cells = []
+            for i, part in enumerate(parts):
+                cells.append(Cell.factory(loc + [i], part))
+            return ListCell(loc, cells)
 
         parts = buf.split('..')
         if len(parts) > 2:
@@ -67,44 +120,70 @@ class Cell(object):
                 loc, [Cell.factory(loc, part) for part in parts])
 
         if buf.startswith('('):
-            return SubCell(loc, buf[1:])
+            buf, cell = SubstCell.factory(loc, buf[1:])
+            return cell
 
         return Cell(loc, buf)
 
-    def __init__(self, loc, values):
+    def __init__(self, loc, buf):
         ''' default ctor for all subclasses
             - loc: [f, r, c] location of this cell
             - values: list of components of the cell
         '''
         self._loc = loc
-        if not isinstance(values, str):
-            self._values = values
-        else:
-            self._values = encast( values.rstrip().lstrip() )
+        self._value = encast(buf)
+
+    def __str__(self):
+        return '( loc: %s, value: %s )' % (self._loc, self._value)
 
     # pylint: disable=unused-argument
-    def values(self, context, arg=None):
+    def value(self, context, arg=None):
         ''' default evaluator, only suitable for literal cells
             - context: object that can process symbolic lookups
-            - return: current value of _values
+            - return: current value of _value
         '''
-        return self._values
+        return self._value
     # pylint: enable=unused-argument
 
 
 class ListCell(Cell):
     ''' class for x;y... cells
     '''
-    def values(self, context, arg=None):
-        return [item.values(context, arg) for item in self._values]
+    def __init__(self, loc, value):
+        super(ListCell, self).__init__(loc, value)
+
+    def value(self, context, arg=None):
+        ''' evaluate.
+              self._value is a list of scalars and cells
+        '''
+        result = []
+        for val in self._value:
+            if isinstance(val, Cell):
+                result.append(val.value(context, arg))
+            else:
+                result.append(val)
+
+        return result
 
 
 class RangeCell(Cell):
     ''' class for v..v cells
     '''
-    def values(self, context, arg=None):
-        return range( self._values[0].values(context, arg),
-                      self._values[1].values(context, arg) )
+    def __init__(self, loc, buf):
+        super(RangeCell, self).__init__(loc, buf)
+    
+    def value(self, context, arg=None):
+        lef, rig = self._value
+        if isinstance(lef, Cell):
+            lef = lef.value(context, arg)
+        if isinstance(rig, Cell):
+            rig = rig.value(context, arg)
+
+        if isinstance(lef, int) and isinstance(rig, int):
+            return range(lef, rig)
+
+        raise ValueError('%s: cannot make range from [%s, %s]' % (
+            self._loc, lef, rig))
 
 
 class SubstCell(Cell):
@@ -132,45 +211,40 @@ class SubstCell(Cell):
 
         return buf, subclass(loc, buf.lstrip())
 
-    # pylint: disable=unused-argument,no-self-use
-    def _fail(self, xxx, yyy):
-        raise ValueError('bad SubstCell._op override')
-
-    # pylint: enable=unused-argument,no-self-use
-
     def __init__(self, loc, buf, number=False, base=10):
-        super(SubstCell, self).__init__(self, loc, buf)
+        super(SubstCell, self).__init__(loc, [])
 
-        for buf, val in self.subcell(loc, buf):
+        def _fail(xxx, yyy):
+            raise ValueError('bad SubstCell._op override')
+        
+        for val in CellIterator(loc, buf):
             if isinstance(val, str):
                 try:
-                    self._values.append(encast(val, number, base))
+                    self._value.append(encast(val, number, base))
                 except ValueError:
-                    raise ValueError('unexpected non-numeric arg: %s' % val)
+                    raise ValueError(
+                        '%s: unexpected non-numeric arg: %s' % (
+                            loc, val))
             else:
-                self._values.append(val)
+                self._value.append(val)
 
-        self._op = self._fail
+        self._op = _fail
 
 
-    def subcell(self, loc, buf):
-        buf = buf.lstrip()
-        if len(buf) == 0:
-            return
+    def value(self, context, arg=None):
+        ''' evaluate. self._value is always an array of at least 2 items
+              pass values pairwise to self._op and accumulate results
+        '''
+        result = self._value.pop(0)
+        if isinstance(result, Cell):
+            result = result.value(context, arg)
+            
+        for val in self._value:
+            if isinstance(val, Cell):
+                val = val.value(context, arg)
+            result = self._op(result, val)
 
-        if buf.startswith('('):
-            yield SubstCell(loc, buf[1:])
-
-        mat = re.match(r"[\S]+", buf)
-        yield buf[mat.end():], buf[mat.start():mat.end()]
-
-    def values(self, context, arg=None):
-        if not isinstance(self._values, list):
-            raise ValueError('self._values is not a list')
-
-        result = self._values.pop().values(context, arg)
-        for val in self._values:
-            result = self._op(result, val.values(context, arg))
+        return result
 
 
 class AddCell(SubstCell):
@@ -178,14 +252,15 @@ class AddCell(SubstCell):
     '''
     def __init__(self, loc, buf):
         super(AddCell, self).__init__(self, loc, buf, number=True)
+        self._value.insert(0, 0)
         self._op = lambda x, y: x + y
-
 
 class AndCell(SubstCell):
     ''' implement (& v v ...)
     '''
     def __init__(self, loc, buf):
         super(AndCell, self).__init__(self, loc, buf, number=True)
+        self._value.insert(0, 0xFFFFFFFF)
         self._op = lambda x, y: x & y
 
 
@@ -193,9 +268,15 @@ class HexCell(SubstCell):
     ''' implement (# vv ...)
     '''
     def __init__(self, loc, buf):
-        super(HexCell, self).__init__(self, loc, buf, number=True, base=16)
-        self._values.insert(0, [])
-        self._op = lambda x, y: x.append(y)
+        super(HexCell, self).__init__(loc, buf, number=True, base=16)
+        self._value.insert(0, [])
+        self._op = lambda x, y: x + [y]
+
+    def value(self, context, arg=None):
+        val = super(HexCell, self).value(context, arg)
+        if len(val) == 1:
+            return val.pop()
+        return val
 
 
 class NotCell(SubstCell):
@@ -203,7 +284,7 @@ class NotCell(SubstCell):
     '''
     def __init__(self, loc, buf):
         super(NotCell, self).__init__(self, loc, buf, number=True)
-        self._values.insert(0, 0)
+        self._value.insert(0, 0)
         self._op = lambda x, y: ~y
 
 
@@ -212,6 +293,7 @@ class OrCell(SubstCell):
     '''
     def __init__(self, loc, buf):
         super(OrCell, self).__init__(self, loc, buf, number=True)
+        self._value.insert(0, 0x00000000)
         self._op = lambda x, y: x | y
 
 
@@ -219,15 +301,22 @@ class PasteCell(SubstCell):
     ''' class for (% s s ...) substitutions
     '''
     def __init__(self, loc, buf):
-        def paste(s, t):
-            if t == '%':
-                t = ' '
-            elif t == '%%':
-                t = '%'
+        ''' ctor
+        '''
+        def paste(sss, ttt):
+            ''' contatenate tokens, processing % and %% metachars
+                - sss: left side
+                - ttt: right side
+            '''
+            if ttt == '%':
+                ttt = ' '
+            elif ttt == '%%':
+                ttt = '%'
 
-            return '%s%s' % (s, t)
-                
+            return '%s%s' % (sss, ttt)
+
         super(PasteCell, self).__init__(self, loc, buf)
+        self._value.insert(0, '')
         self._op = paste
 
 
@@ -242,13 +331,13 @@ class ShiftCell(SubstCell):
             self._op = lambda lef, rig: lef >> rig
 
 
-    def values(self, context, arg=None):
-        if len(self._values) == 2:
-            arg, rig = [v.values(context, arg) for v in self._values]
+    def value(self, context, arg=None):
+        if len(self._value) == 2:
+            arg, rig = [v.value(context, arg) for v in self._value]
         else:
             if arg is None:
                 return 0
-            rig = arg, self._values[0].values(context, arg)
+            rig = arg, self._value[0].value(context, arg)
 
         return self._op(arg, rig)
 
@@ -258,8 +347,8 @@ class SubCell(SubstCell):
     '''
     def __init__(self, loc, buf):
         super(SubCell, self).__init__(self, loc, buf, number=True)
-        if len(self._values) == 1:
-            self._values.insert(0, 0)
+        if len(self._value) == 1:
+            self._value.insert(0, 0)
         self._op = lambda x, y: x - y
 
 
@@ -274,16 +363,55 @@ class VarCell(SubstCell):
             scope = 'r'
             buf = buf[1:]
         else:
-            scope = 'cl'
-            
+            scope = 'c'
+
         super(VarCell, self).__init__(self, loc, buf)
-        self._values.insert(0, scope)
+        self._value.insert(0, scope)
 
-    def values(self, context, arg=None):
-        return context.lookup(self._values, arg)
-
-
+    def value(self, context, arg=None):
+        return context.lookup(self._value, arg)
 
 
 
+def units():
+    context = {}
+    
+    test = 0
+    cell = Cell.factory(['string', 0, test], "hello")
+    print('%s\n: %s\n' % (cell, cell.value(context)))
 
+    test += 1
+    cell = Cell.factory(['int', 0, test], "42")
+    print('%s\n: %s\n' % (cell, cell.value(context)))
+
+    test += 1
+    cell = Cell.factory(['float', 0, test], "3.14")
+    print('%s\n: %s\n' % (cell, cell.value(context)))
+
+    test += 1
+    cell = Cell.factory(['list(string)', 0, test], "hello;goodbye")
+    print('%s\n: %s\n' % (cell, cell.value(context)))
+
+    test += 1
+    cell = Cell.factory( ['range(int;int)', 0, test],
+                         "1..4")
+    print('%s\n: %s\n' % (cell, cell.value(context)))
+
+    test += 1
+    try:
+        cell = Cell.factory( ['range(float;string)', 0, test],
+                             "1.3..foo")
+        print('%s\n: %s\n' % (cell, cell.value(context)))
+    except ValueError as err:
+        print('! caught expected ValueError:\n!   %s\n' % err)
+    
+    test += 1
+    cell = Cell.factory( ['(#80)', 0, test], "(#80)")
+    print('%s\n: %s\n' % (cell, cell.value(context)))
+
+    test += 1
+    cell = Cell.factory( ['(#80 7E)', 0, test], "(#80 7E)")
+    print('%s\n: %s\n' % (cell, cell.value(context)))
+
+if __name__ == '__main__':
+    units()
