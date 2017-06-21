@@ -6,7 +6,7 @@
 
 # pylint: disable=bad-whitespace
 
-from pysex import cell
+from pysex import algo
 
 class Row(object):
     ''' represents a table row
@@ -16,11 +16,22 @@ class Row(object):
             - data: list of Cell
             - tab:  parent table of the cell
         '''
-        self._table = tab
-        self._key = tab.key
+        self._tab = tab
+        self._keycell = None
         for colid in tab.colids:
             self.put(colid, data.pop(0))
 
+        if tab.key:
+            self._keycell = self.get(tab.key)
+
+    @property
+    def keycell(self):
+        return self._keycell
+
+    @property
+    def tab(self):
+        return self._tab
+    
     def get(self, colid):
         ''' return a specific cell
             - colid: cell identifier
@@ -36,46 +47,74 @@ class Row(object):
         setattr(self, colid, acell)
         return acell
 
-    def value(self, context, colid, newval=(None, None)):
-        ''' get/set the value of a specific cell
-            - context: symbolic context for Cell.value()
-            - colid: item in row to evaluate
-            - newval=(None, None): loc, value a new cell
-                value will be parsed... may include substitutions
-            - return: the new value
-        '''
-        loc, val = newval
-        if loc:
-            acell = cell.Cell.factory(loc, val)
-            setattr(self, colid, acell)
-            return acell.value(context)
-        else:
-            return getattr(self, colid).value(context)
-
 
 class Table(object):
     ''' base class for our tables
     '''
+    _tables = {}
+    _globals = {}
+
+    @classmethod
+    def get(cls, name):
+        return cls._tables[name]
+
+    @classmethod
+    def factory(cls, fp, loc, line):
+        classes = {
+            'Vendors':     VendorTable,
+            'Devices':     DeviceTable,
+            'Keyboard':    KeyboardTable,
+            'Controller':  ControllerTable,
+            'ToneGen':     ToneGenTable,
+            'Drum':        DrumTable,
+            'Seq':         SeqTable,
+            'HeaderTable': HeaderTable
+            'ProtoTable':  ProtoTable,
+            'MemoryMap':   MemMapTable,
+            'ChoiceTable': ChoiceTable,
+            'ParamTable':  ParamTable,
+            'ValueTable':  ValueTable
+        }
+        parts = line.split(',')
+        subclass = classes[parts[1]]
+        tab = subclass(parts[1][1:], None, None)
+
+        while True:
+            line = fp.readline()
+            if not line:
+                return tab
+            loc[1] += 1
+
+            parts = line.split(',')
+            if not parts[1]:
+                return tab
+            
+            tab.addrow(
+                Row( 
+                    [ cell.Cell.factory(loc + [colno], part)
+                      for colno, part in enumerate(parts) ]))
+            
     def __init__(self, name, meta, colids):
         '''
             - meta: metadata values
             - cols: column descriptors (names)
         '''
+        self.name = name
+        self.meta = meta
         self.key = None
         self._index = {}
-        self._name = name
-        self._meta = meta
         self.colids = self._unique(
-            [self._getkey(colid) for colid in colids])
+            [self._keyscan(colid) for colid in colids])
         self._rows = []
-
-    def _getkey(self, colid):
+        Table._tables[name] = self
+    
+    def _keyscan(self, colid):
         if colid.startswith('*'):
             colid = colid[1:]
             if self.key:
                 raise KeyError(
                     'Table %s: %s and %s cannot both be keys' % (
-                        self._name, self.key, colid))
+                        self.name, self.key, colid))
             self.key = colid
         return colid
 
@@ -88,7 +127,7 @@ class Table(object):
             if colid in colids[i+1:]:
                 raise KeyError(
                     'Table %s: duplicate col id: %s' % (
-                        self._name, colid))
+                        self.name, colid))
 
         return colids
 
@@ -102,10 +141,58 @@ class Table(object):
             if keyval in self._index:
                 raise KeyError(
                     'Table %s: duplicate value %s for key %s' % (
-                        self._name, keyval, self.key))
+                        self.name, keyval, self.key))
             self._index[keyval] = newrow
 
         self._rows.append(newrow)
+
+    def value(self, var, arg):
+        method = var.pop(0)
+        return method(self, var, arg)
+
+    def engine(self, rqrow):
+        if engine:
+            return engine.split('.')[0]
+        else:
+            return engine
+
+    def row_select(self, rowid, rqrow):
+        rows = [ row  for row in self._rows
+                 if row.ident == rowid ]
+
+        if not rows:
+            return rows
+
+        if not engine:
+            return rows
+
+        result = []
+        for row in rows:
+            rengine = row.engine.value(self)
+            if not rengine or not engine:
+                # either caller or table needs no filter
+                result.append(row)
+            elif engine in rengine:
+                result.append(row)
+
+        return result
+
+    def row_unique(self, rowid, rqrow):
+        ''' select rows by rowid
+              return the first where engine matches rqrow
+        '''
+        rows = self.row_select(rowid, self.engine(rqrow))
+        if not rows:
+            raise ValueError(
+                '%s: no param for ident=%s,engine=%s' % (
+                    self.name, rowid, engine))
+
+        if len(rows) > 1:
+            raise ValueError(
+                '%s: non-unique param: ident=%s,engine=%s' % (
+                    self.name, rowid, ))
+
+        return rows.pop()
 
 
 class MemoryMap(Table):
@@ -116,54 +203,112 @@ class MemoryMap(Table):
            a MemoryMap with finer-grained mapping of part of the addr space
     '''
     def __init__(self, name, meta, colids):
-        meta = [
-            'Block Mnemonic',
-            'Block Name',
-            'Address',
-            'Entry Count',
-            'Entry Stride',
-            'Sub Map',
-            '-',
-            '-',
-            '-',
-            'Choice/Param Table'
+        colinfo = [
+            [ 'Block ID', 'ident' ],
+            [ 'Block Name', 'name' ],
+            [ 'Address', 'addr' ],
+            [ 'Entry Count', 'count' ],
+            [ 'Entry Stride', 'stride' ],
+            [ 'Sub Map', 'submap' ],
+            [ '-', None ],
+            [ '-', None ],
+            [ '-', None ],
+            [ 'Choice/Param Table', 'params' ]
         ]
-        colids = [
-            'id',
-            'name',
-            'addr',
-            'count',
-            'stride',
-            'memmap'
-            '-', '-', '-',
-            'values'
-        ]
-        super(MemoryMap, self).__init__(name, meta, colids)
+        super(MemoryMap, self).__init__(
+            name,
+            [ent[0] for ent in colinfo],
+            [ent[1] for ent in colinfo])
 
 
 class ChoiceTable(Table):
     ''' Table providing a way to select from groups of paramters
     '''
-    pass
+    def __init__(self, name, meta, colids):
+        colinfo = [
+            [ 'Ident',       'ident' ],
+            [ 'Name',        'name' ],
+            [ 'Midi Value',  'data' ],
+            [ 'Param Table', 'table' ]
+        ]
+        super(ChoiceTable, self).__init__(
+            name,
+            [ent[0] for ent in colinfo],
+            [ent[1] for ent in colinfo])
+
+
+class ParamTable(Table):
+    ''' Table of Parameter Descriptions
+    '''
+    #! work out behringer and alesis bitfielding
+
+    def __init__(self, name, meta, colids):
+        colinfo = [
+            [ 'Ident',      'ident' ],
+            [ 'Engine',     'engine' ],
+            [ 'Param',      'param' ],
+            [ 'Byte Count', 'bytec' ],
+            [ 'Range',      'range' ],
+            [ 'Rendering',  'render' ],
+            [ 'Scaling',    'scale' ],
+            [ 'Val Shift',  'shift' ],
+            [ 'Units',      'units' ]
+        ]
+        super(ParamTable, self).__init__(
+            name,
+            [ent[0] for ent in colinfo],
+            [ent[1] for ent in colinfo])
+
+    def value(self, rowid, rqrow, midi):
+        ''' convert a MIDI byte to a value
+                shift, then scale
+        '''
+        row = self.row_unique(rowid, rqrow)
+        val = algo.ALGOMAP[row.render].value(
+            midi, row.bytec.value(self))
+
+        val = row.shift.value(self, val)
+
+        # if scale is (* val), scaling is done in MulCell
+        # if scale is (]tab), scaling is done in ValueTable
+        return row.scale.value(self, val)
+
+    def midi(self, rowid, rqrow, val):
+        ''' convert value to a MIDI bytes
+        '''
+        row = self.row_unique(rowid, rqrow)
+
+        # unscale
+        scale = row.scale.value(self)
+        val = val / scale
+
+        # unshift
+        shift = row.shift.value(self)
+        val =- shift
+        return algo.Render.factory(
+            row.render.value(self)).midi(val, row.bytec.value(self))
+
+    def vrange(self, rowid):
+        ''' return the endpoints of the scaled range values
+        '''
+        pass
+
 
 class ValueTable(Table):
     ''' table that maps MIDI byte values to float values
           used by many vendors in effects parameter translations
     '''
     def __init__(self, name, meta, colids):
-        meta = [
-            'Data Value',
-            'Output Value',
-            'Scaling',
-            'Rounding'
+        colinfo = [
+            [ 'Data Value', 'idata' ],
+            [ 'Mapped Value', 'fdata' ],
+            [ 'Scaling', 'scale' ],
+            [ 'Rounding', 'rounding' ]
         ]
-        colids = [
-            'idata',
-            'fdata',
-            'scale',
-            'rounding'
-        ]
-        super(ValueTable, self).__init__(name, meta, colids)
+        super(ValueTable, self).__init__(
+            name,
+            [ent[0] for ent in colinfo],
+            [ent[1] for ent in colinfo])
 
     def value(self, context, data):
         ''' sparse lookup with interpolation
