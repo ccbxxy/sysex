@@ -6,193 +6,279 @@
 
 # pylint: disable=bad-whitespace
 
+import copy
 from pysex import algo
+from pysex.mod import ModEndException
+from pysex.row import Row
 
-class Row(object):
-    ''' represents a table row
+__all__ = ['Table', 'CLASSES']
+
+
+
+class TableMetaData(object):
+    ''' container for table descriptions and column IDs
     '''
-    def __init__(self, data, tab):
-        ''' create a row
-            - data: list of Cell
-            - tab:  parent table of the cell
+    def __init__(self, colinfo=None):
+        self.humids, self.colids = None, None
+        if colinfo:
+            self.humids = [elt[0] for elt in colinfo]
+            self.colids = [elt[1] for elt in colinfo]
+
+    def _put(self, tab, sigil, filt, line):
+        props = {
+            ']]': 'humids',
+            '*':  'colids'
+        }
+        if line[0].startswith(sigil):
+            prop = props[sigil]
+            if not getattr(self, prop):
+                setattr(self, prop, filt(tab, line[1:]))
+            return True
+        else:
+            return False
+
+    def puthumids(self, tab, line):
+        ''' setter.  never overrides existing colids
+            - tab: table under construction
+            - line: line from the table
+            - return: True if was colids line, False otherwise
         '''
-        self._tab = tab
-        self._keycell = None
-        for colid in tab.colids:
-            self.put(colid, data.pop(0))
+        return self._put(tab, ']]', lambda t, x: x, line)
 
-        if tab.key:
-            self._keycell = self.get(tab.key)
-
-    @property
-    def keycell(self):
-        return self._keycell
-
-    @property
-    def tab(self):
-        return self._tab
-    
-    def get(self, colid):
-        ''' return a specific cell
-            - colid: cell identifier
+    def putcolids(self, tab, line):
+        ''' setter.  never overrides existing colids
+            - tab: table under construction
+            - line: line from the table
+            - return: True if was colids line, False otherwise
         '''
-        return getattr(self, colid)
+        return self._put(tab, '*', self.scan, line)
 
-    def put(self, colid, acell):
-        ''' replace the cell at colid
-            - colid: item in row to update
-            - acell: new cell
+    def scanfor(self, tab, sigil, colid):
+        ''' process '@', '*'
+            - sigil: one of '@', '*'
+            - prop:  one of 'ident', 'keyid'
+            - tab:   table under contruction
+            - colid: colid to process
         '''
-        #! don't forget to key check updates to unique cols
-        setattr(self, colid, acell)
-        return acell
+        # pylint: disable=no-self-use
+        #  Here for scope
+        props = {
+            '@': 'ident',
+            '*': 'keyid'
+        }
+
+        if colid.startswith(sigil):
+            # non-unique identity row
+            colid = colid[1:]
+            prop = props[sigil]
+            propval = getattr(tab, prop)
+            if propval:
+                raise ValueError(
+                    'Table %s: %s and %s cannot both be %s cols' % (
+                        tab.name, propval, colid, prop))
+            setattr(tab, prop, colid)
+
+    def scan(self, tab, line):
+        ''' process @colid, *colid semantics
+              enforce colid uniqueness
+            - tab: table under construction
+            - line: array of text tokens from input
+        '''
+        colids = []
+        for num, colid in enumerate(line):
+            if self.scanfor(tab, '@', colid):
+                colid = tab.ident
+            elif self.scanfor(tab, '*', colid):
+                colid = tab.keyid
+            colids.append(colid)
+            if colid in colids[0:num]:
+                # colids must be unique
+                raise ValueError(
+                    'Table %s: duplicate col id: %s' % (
+                        tab.name, colid))
+        return colids
 
 
 class Table(object):
     ''' base class for our tables
     '''
-    _tables = {}
-    _globals = {}
-
-    @classmethod
-    def get(cls, name):
-        return cls._tables[name]
-
-    @classmethod
-    def factory(cls, fp, loc, line):
-        classes = {
-            'Vendors':     VendorTable,
-            'Devices':     DeviceTable,
-            'Keyboard':    KeyboardTable,
-            'Controller':  ControllerTable,
-            'ToneGen':     ToneGenTable,
-            'Drum':        DrumTable,
-            'Seq':         SeqTable,
-            'HeaderTable': HeaderTable
-            'ProtoTable':  ProtoTable,
-            'MemoryMap':   MemMapTable,
-            'ChoiceTable': ChoiceTable,
-            'ParamTable':  ParamTable,
-            'ValueTable':  ValueTable
-        }
-        parts = line.split(',')
-        subclass = classes[parts[1]]
-        tab = subclass(parts[1][1:], None, None)
-
-        while True:
-            line = fp.readline()
-            if not line:
-                return tab
-            loc[1] += 1
-
-            parts = line.split(',')
-            if not parts[1]:
-                return tab
-            
-            tab.addrow(
-                Row( 
-                    [ cell.Cell.factory(loc + [colno], part)
-                      for colno, part in enumerate(parts) ]))
-            
-    def __init__(self, name, meta, colids):
+    # pylint: disable=too-few-public-methods,too-many-instance-attributes
+    def __init__(self, mod, name, over, meta=None):
         '''
-            - meta: metadata values
-            - cols: column descriptors (names)
         '''
+        self.mod = mod
         self.name = name
-        self.meta = meta
-        self.key = None
-        self._index = {}
-        self.colids = self._unique(
-            [self._keyscan(colid) for colid in colids])
+        self.over = over
+        self.loc = copy.copy(mod.loc)
+        self.keyid = None
+        self.ident = None
+        self.index = {}
         self._rows = []
-        Table._tables[name] = self
-    
-    def _keyscan(self, colid):
-        if colid.startswith('*'):
-            colid = colid[1:]
-            if self.key:
-                raise KeyError(
-                    'Table %s: %s and %s cannot both be keys' % (
-                        self.name, self.key, colid))
-            self.key = colid
-        return colid
 
-    def _unique(self, colids):
-        for i in range(0, len(colids)):
-            colid = colids[i]
-            if colid == '...' or colid == '-':
-                continue
+        if meta:
+            meta.scan(self, meta.colids)
+            self.meta = meta
+        else:
+            self.meta = TableMetaData()
 
-            if colid in colids[i+1:]:
-                raise KeyError(
-                    'Table %s: duplicate col id: %s' % (
-                        self.name, colid))
+        self._load(mod.reader)
 
-        return colids
-
-    def addrow(self, row):
+    def _addrow(self, row):
         ''' add a row
             - row: an array of Cell
         '''
-        newrow = Row(row, self)
-        if self.key:
-            keyval = newrow.get(self.key)
-            if keyval in self._index:
-                raise KeyError(
-                    'Table %s: duplicate value %s for key %s' % (
-                        self.name, keyval, self.key))
-            self._index[keyval] = newrow
+        if self.keyid in self.index:
+            raise KeyError(
+                'Table %s: duplicate value %s for key %s' % (
+                    self.name, row.key, self.keyid))
+        self.index[row.rkey] = row
+        self._rows.append(row)
 
-        self._rows.append(newrow)
+    def _load(self, reader):
+        ''' read a table from csv.reader
+        '''
+        for line in reader:
+            self.loc['row'] += 1
 
-    def value(self, var, arg):
-        method = var.pop(0)
-        return method(self, var, arg)
+            if self.meta.puthumids(self, line):
+                continue
 
-    def engine(self, rqrow):
-        if engine:
-            return engine.split('.')[0]
+            if self.meta.putcolids(self, line):
+                continue
+
+            if not line[1]:
+                return
+
+            self._addrow(Row(self.loc, self, line))
+
+        if self._rows:
+            return
         else:
-            return engine
+            raise ModEndException
 
-    def row_select(self, rowid, rqrow):
-        rows = [ row  for row in self._rows
-                 if row.ident == rowid ]
-
-        if not rows:
-            return rows
-
-        if not engine:
-            return rows
-
+    def _get_erows(self, rows, rqrow):
+        engine = rqrow.split('.')[0]
         result = []
         for row in rows:
-            rengine = row.engine.value(self)
-            if not rengine or not engine:
-                # either caller or table needs no filter
+            try:
+                rengine = row.engine.value(self)
+            except AttributeError:
+                # row does not have an 'engine'
+                rengine = None
+
+            if not rengine:
+                # no engine filter on row
                 result.append(row)
             elif engine in rengine:
                 result.append(row)
 
         return result
 
-    def row_unique(self, rowid, rqrow):
-        ''' select rows by rowid
-              return the first where engine matches rqrow
-        '''
-        rows = self.row_select(rowid, self.engine(rqrow))
-        if not rows:
-            raise ValueError(
-                '%s: no param for ident=%s,engine=%s' % (
-                    self.name, rowid, engine))
+    def _get_orows(self, rowid, rqrow):
+        if self.over:
+            return self.over.value().getrow(rowid, rqrow)
 
+    def getrow(self, rowid, rqrow=None):
+        ''' return rows where rowid matches the key value
+              filter by matches of rqrow in engine field
+        '''
+        rows = []
+        if self.keyid:
+            try:
+                return self.index[rowid]
+            except KeyError:
+                pass
+        else:
+            rows = [ row
+                     for row in self._rows
+                     if row.ident.value() == rowid ]
+
+        if not rows:
+            # this table may overlay another
+            return self._get_orows(rowid, rqrow)
+
+        if rqrow:
+            return self._get_erows(rows, rqrow)
+        else:
+            return rows
+
+    def _get_arow(self, rowid, rqrow):
+        ''' get a unique row, qualified by rowid and membership of
+             the rqrow in the engine field of the requested row
+        '''
+        rows = self.getrow(rowid, rqrow)
         if len(rows) > 1:
             raise ValueError(
-                '%s: non-unique param: ident=%s,engine=%s' % (
-                    self.name, rowid, ))
+                '%s: too may rows selected with rowid, rqrow: %s, %s',
+                (self.loc, rowid, rqrow))
+        return rows[0]
 
-        return rows.pop()
+# pylint: disable=too-few-public-methods
+
+class VendorTable(Table):
+    ''' Table
+    '''
+    def __init__(self, mod, name, over, meta=None):
+        meta = TableMetaData([
+            [ 'Ident',        '*ident' ],
+            [ 'Company Name', 'name'   ],
+            [ 'MMA SYSEX ID', 'mma_id' ]
+        ])
+        super().__init__(mod, name, over, meta)
+
+class DeviceTable(Table):
+    ''' Table
+    '''
+    def __init__(self, mod, name, over, meta=None):
+        meta = TableMetaData([
+            [ 'Device Name',   '*ident'   ],
+            [ 'Vendor ID',     'vendor'   ],
+            [ 'IDRQ Response', 'idrq'     ],
+            [ 'Protocol ID',   'proto_id' ],
+            [ 'Device Type',   'type'     ]])
+
+        super().__init__(mod, name, over, meta)
+
+
+class KBTable(Table):
+    ''' Table
+    '''
+    pass
+
+class TGTable(Table):
+    ''' Table
+    '''
+    pass
+
+class CTRLTable(Table):
+    ''' Table
+    '''
+    pass
+
+class DrumTable(Table):
+    ''' Table
+    '''
+    pass
+
+class FXTable(Table):
+    ''' Table
+    '''
+    pass
+
+class SeqTable(Table):
+    ''' Table
+    '''
+    pass
+
+class HeaderTable(Table):
+    ''' Table
+    '''
+    pass
+
+class ProtoTable(Table):
+    ''' Table
+    '''
+    pass
 
 
 class MemoryMap(Table):
@@ -202,39 +288,33 @@ class MemoryMap(Table):
            a ChoiceTable providing a large (>5) number of value choices
            a MemoryMap with finer-grained mapping of part of the addr space
     '''
-    def __init__(self, name, meta, colids):
-        colinfo = [
-            [ 'Block ID', 'ident' ],
-            [ 'Block Name', 'name' ],
-            [ 'Address', 'addr' ],
-            [ 'Entry Count', 'count' ],
+    def __init__(self, mod, name, over, meta=None):
+        meta = TableMetaData([
+            [ 'Block ID',     'ident'  ],
+            [ 'Block Name',   'name'   ],
+            [ 'Address',      'addr'   ],
+            [ 'Entry Count',  'count'  ],
             [ 'Entry Stride', 'stride' ],
-            [ 'Sub Map', 'submap' ],
-            [ '-', None ],
-            [ '-', None ],
-            [ '-', None ],
-            [ 'Choice/Param Table', 'params' ]
-        ]
-        super(MemoryMap, self).__init__(
-            name,
-            [ent[0] for ent in colinfo],
-            [ent[1] for ent in colinfo])
+            [ 'Sub Map',      'submap' ],
+            [ '-',            None     ],
+            [ '-',            None     ],
+            [ '-',            None     ],
+            [ 'Rendering',    'params' ]])
+
+        super().__init__(mod, name, over, meta)
 
 
 class ChoiceTable(Table):
     ''' Table providing a way to select from groups of paramters
     '''
-    def __init__(self, name, meta, colids):
-        colinfo = [
+    def __init__(self, mod, name, over):
+        meta = TableMetaData([
             [ 'Ident',       'ident' ],
-            [ 'Name',        'name' ],
-            [ 'Midi Value',  'data' ],
-            [ 'Param Table', 'table' ]
-        ]
-        super(ChoiceTable, self).__init__(
-            name,
-            [ent[0] for ent in colinfo],
-            [ent[1] for ent in colinfo])
+            [ 'Name',        'name'  ],
+            [ 'Midi Value',  'data'  ],
+            [ 'Param Table', 'table' ]])
+
+        super().__init__(mod, name, over, meta)
 
 
 class ParamTable(Table):
@@ -242,51 +322,50 @@ class ParamTable(Table):
     '''
     #! work out behringer and alesis bitfielding
 
-    def __init__(self, name, meta, colids):
-        colinfo = [
-            [ 'Ident',      'ident' ],
+    def __init__(self, mod, name, over, meta=None):
+        meta = TableMetaData([
+            [ 'Ident',      'ident'  ],
             [ 'Engine',     'engine' ],
-            [ 'Param',      'param' ],
-            [ 'Byte Count', 'bytec' ],
-            [ 'Range',      'range' ],
+            [ 'Param',      'param'  ],
+            [ 'Byte Count', 'bytec'  ],
+            [ 'Range',      'range'  ],
             [ 'Rendering',  'render' ],
-            [ 'Scaling',    'scale' ],
-            [ 'Val Shift',  'shift' ],
-            [ 'Units',      'units' ]
-        ]
-        super(ParamTable, self).__init__(
-            name,
-            [ent[0] for ent in colinfo],
-            [ent[1] for ent in colinfo])
+            [ 'Scaling',    'scale'  ],
+            [ 'Val Shift',  'shift'  ],
+            [ 'Units',      'units'  ]])
+        super().__init__(mod, name, over, meta)
 
     def value(self, rowid, rqrow, midi):
         ''' convert a MIDI byte to a value
-                shift, then scale
+              the row provides semantics for interpreting the midi
+              byte or bytes
         '''
-        row = self.row_unique(rowid, rqrow)
-        val = algo.ALGOMAP[row.render].value(
-            midi, row.bytec.value(self))
-
-        val = row.shift.value(self, val)
+        # get the row
+        row = self._get_arow(rowid, rqrow)
 
         # if scale is (* val), scaling is done in MulCell
         # if scale is (]tab), scaling is done in ValueTable
-        return row.scale.value(self, val)
+
+        # remember: scale and shift are cells in the current row
+        #  and that () gets the value of a cell
+        #
+        return row.scale(
+            row.shift(
+                algo.tovalue(row.render(), midi)))
 
     def midi(self, rowid, rqrow, val):
         ''' convert value to a MIDI bytes
         '''
-        row = self.row_unique(rowid, rqrow)
+        row = self._get_arow(rowid, rqrow)
 
         # unscale
-        scale = row.scale.value(self)
+        scale = row.scale()
         val = val / scale
 
         # unshift
-        shift = row.shift.value(self)
+        shift = row.shift()
         val =- shift
-        return algo.Render.factory(
-            row.render.value(self)).midi(val, row.bytec.value(self))
+        return algo.tomidi(row.render(), val, row.bytec())
 
     def vrange(self, rowid):
         ''' return the endpoints of the scaled range values
@@ -298,19 +377,16 @@ class ValueTable(Table):
     ''' table that maps MIDI byte values to float values
           used by many vendors in effects parameter translations
     '''
-    def __init__(self, name, meta, colids):
-        colinfo = [
-            [ 'Data Value', 'idata' ],
+    def __init__(self, mod, name, over):
+        meta = TableMetaData([
+            [ 'Data Value',   'idata' ],
             [ 'Mapped Value', 'fdata' ],
-            [ 'Scaling', 'scale' ],
-            [ 'Rounding', 'rounding' ]
-        ]
-        super(ValueTable, self).__init__(
-            name,
-            [ent[0] for ent in colinfo],
-            [ent[1] for ent in colinfo])
+            [ 'Scaling',      'scale' ],
+            [ 'Precision',    'prec'  ]])
 
-    def value(self, context, data):
+        super().__init__(mod, name, over, meta)
+
+    def value(self, data):
         ''' sparse lookup with interpolation
             - context: symbol environment
             - data: single MIDI data byte
@@ -321,15 +397,14 @@ class ValueTable(Table):
         # find the rows between which the midi byte falls
         ilast = flast = row = 0
         for row in self._rows:
-            idata = row.idata.value(context)
+            idata = row.idata()
             if idata > data:
                 break
             ilast = idata
-            flast = row.fdata.value(context)
+            flast = row.fdata()
 
         # interpolate
-        return round( row.scale.value(context) * (data - ilast) + flast,
-                      row.rounding.value(context))
+        return round(row.scale() * (data - ilast) + flast, row.prec())
 
     def midi(self, context, value):
         ''' sparse lookup with interpolation
@@ -351,3 +426,24 @@ class ValueTable(Table):
         # interpolate
         return int(
             round(row.scale.value(context) * (value - flast) + dlast, 0))
+
+# pylint: enable=too-few-public-methods
+
+CLASSES = {
+    # master.csv tables
+    'Vendors':     VendorTable,
+    'Devices':     DeviceTable,
+    'Keyboard':    KBTable,
+    'Controller':  CTRLTable,
+    'TG':          TGTable,
+    'Drum':        DrumTable,
+    'Seq':         SeqTable,
+
+    # device module tables
+    'HeaderTable': HeaderTable,
+    'ProtoTable':  ProtoTable,
+    'MemoryMap':   MemoryMap,
+    'ChoiceTable': ChoiceTable,
+    'ParamTable':  ParamTable,
+    'ValueTable':  ValueTable
+}
