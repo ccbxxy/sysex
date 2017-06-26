@@ -22,9 +22,29 @@
     sysex.py - provide a top-level namespace to avoid circular deps
 """
 
-# pylint: disable=invalid-name
-
-__all__ = ['mods']
+__all__ = ['modref', 'MASTER', 'SysexLookupException']
 
 # this maps names of Mods to corresponding instances
-mods = {}
+_MODS = {}
+MASTER = 'master'
+
+def modref(name):
+    ''' return module by name
+          can't auto-load without getting circular deps
+          caller will need to catch KeyError and load
+          mod.Mod() automatically registers self by name.
+    '''
+    try:
+        return _MODS[name]
+    except KeyError as exc:
+        raise SysexLookupError(
+            'function', 'Sysex.modref',
+            'module not found', (name)) from exc
+
+class SysexLookupError(Exception):
+    ''' thrown when a lookup fails
+    '''
+    def __init__(self, objtype, name, problem, params=()):
+        message = '%s %s: %s: %s' % (
+            objtype, name, problem, params)
+        super().__init__(message)

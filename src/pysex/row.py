@@ -42,10 +42,16 @@ class Row(object):
         self.loc = loc
         self.tab = tab
         self._keyed = nope
+
+        cloc = copy.copy(self.loc)
         for nth, colid in tab.colids:
-            loc = copy.copy(self.loc)
-            loc['cell'] = nth+1
-            self.put(colid, Cell(loc, self, data[nth]))
+            cloc['cell'] = nth+1
+
+            # if you want the Cell itself, use row.<colid>
+            self.put(colid, Cell(cloc, self, data[nth]))
+
+            # Cell is callable, if you need it's value, call it:
+            #   row.<colid>() or row.<colid>(args)
 
         if tab.key:
             self._keyed = self.get(tab.key)
@@ -77,4 +83,14 @@ class Row(object):
         setattr(self, colid, acell)
         return acell
 
+    def engine_match(self, rqrow):
+        ''' true if rqrow is in the engine field
+        '''
+        # pylint: disable=no-member
+        #   not happy with setattr shenanigans
 
+        if self.engine is None:
+            return True
+
+        rqe = rqrow.split('.')[0]
+        return rqe in self.engine()

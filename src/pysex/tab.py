@@ -28,6 +28,7 @@ import copy
 from pysex import algo
 from pysex.mod import ModEndException
 from pysex.row import Row
+from pysex.sysex import SysexLookupError
 
 __all__ = ['Table', 'CLASSES']
 
@@ -71,7 +72,7 @@ class TableMetaData(object):
         '''
         return self._put(tab, '*', self.scan, line)
 
-    def scanfor(self, tab, sigil, colid):
+    def _scanfor(self, tab, sigil, colid):
         ''' process '@', '*'
             - sigil: one of '@', '*'
             - prop:  one of 'ident', 'keyid'
@@ -104,9 +105,9 @@ class TableMetaData(object):
         '''
         colids = []
         for num, colid in enumerate(line):
-            if self.scanfor(tab, '@', colid):
+            if self._scanfor(tab, '@', colid):
                 colid = tab.ident
-            elif self.scanfor(tab, '*', colid):
+            elif self._scanfor(tab, '*', colid):
                 colid = tab.keyid
             colids.append(colid)
             if colid in colids[0:num]:
@@ -174,29 +175,7 @@ class Table(object):
         else:
             raise ModEndException
 
-    def _get_erows(self, rows, rqrow):
-        engine = rqrow.split('.')[0]
-        result = []
-        for row in rows:
-            try:
-                rengine = row.engine.value(self)
-            except AttributeError:
-                # row does not have an 'engine'
-                rengine = None
-
-            if not rengine:
-                # no engine filter on row
-                result.append(row)
-            elif engine in rengine:
-                result.append(row)
-
-        return result
-
-    def _get_orows(self, rowid, rqrow):
-        if self.over:
-            return self.over.value().getrow(rowid, rqrow)
-
-    def getrow(self, rowid, rqrow=None):
+    def getrows(self, rowid, rqrow=None, colid=None):
         ''' return rows where rowid matches the key value
               filter by matches of rqrow in engine field
         '''
@@ -206,29 +185,38 @@ class Table(object):
                 return self.index[rowid]
             except KeyError:
                 pass
-        else:
-            rows = [ row
-                     for row in self._rows
-                     if row.ident.value() == rowid ]
+
+        if not colid:
+            colid = 'ident'
+
+        rows = [ row
+                 for row in self._rows
+                 if (getattr(row, colid)() == rowid and
+                     row.engine_match(rqrow)) ]
 
         if not rows:
-            # this table may overlay another
-            return self._get_orows(rowid, rqrow)
-
-        if rqrow:
-            return self._get_erows(rows, rqrow)
+            # dig deeper?
+            parent = self.over()
+            if parent:
+                return parent.getrows(rowid, rqrow, colid)
+            else:
+                raise SysexLookupError(
+                    'row', self.name,
+                    'no values found',
+                    (rowid, rqrow, colid))
         else:
             return rows
 
-    def _get_arow(self, rowid, rqrow):
+    def get1row(self, rowid, rqrow, colid=None):
         ''' get a unique row, qualified by rowid and membership of
              the rqrow in the engine field of the requested row
         '''
-        rows = self.getrow(rowid, rqrow)
+        rows = self.getrows(rowid, rqrow, colid)
         if len(rows) > 1:
-            raise ValueError(
-                '%s: too may rows selected with rowid, rqrow: %s, %s',
-                (self.loc, rowid, rqrow))
+            raise SysexLookupError(
+                self, 'rows not unique',
+                (rowid, rqrow, colid))
+
         return rows[0]
 
 # pylint: disable=too-few-public-methods
@@ -243,6 +231,31 @@ class VendorTable(Table):
             [ 'MMA SYSEX ID', 'mma_id' ]
         ])
         super().__init__(mod, name, over, meta)
+        for row in self._rows:
+            if row.mma_id()[0] == 0x00:
+                setattr(row, '_idlen', 1)
+            else:
+                setattr(row, '_idlen', 3)
+
+    def mma_lookup(self, data):
+        ''' return the row matching the first 1 or 3 bytes in
+              the data stream
+        '''
+        idlen = 1 if data[0] == 0x00 else 3
+        row = self.get1row(data[0:idlen], rqrow=None, colid='mma_id')
+        self.eat_id(data, idlen)
+        return row
+
+    def eat_id(self, data, idlen=None):
+        ''' consume the ID from the data buffer
+        '''
+        # pylint: disable=no-self-use
+        #  SCOPE
+        if idlen is None:
+            idlen = 1 if data[0] == 0x00 else 3
+        del data[0:idlen]
+        return idlen
+
 
 class DeviceTable(Table):
     ''' Table
@@ -268,15 +281,18 @@ class TGTable(Table):
     '''
     pass
 
+
 class CTRLTable(Table):
     ''' Table
     '''
     pass
 
+
 class DrumTable(Table):
     ''' Table
     '''
     pass
+
 
 class FXTable(Table):
     ''' Table
@@ -288,10 +304,12 @@ class SeqTable(Table):
     '''
     pass
 
+
 class HeaderTable(Table):
     ''' Table
     '''
     pass
+
 
 class ProtoTable(Table):
     ''' Table
@@ -359,7 +377,7 @@ class ParamTable(Table):
               byte or bytes
         '''
         # get the row
-        row = self._get_arow(rowid, rqrow)
+        row = self.get1row(rowid, rqrow)
 
         # if scale is (* val), scaling is done in MulCell
         # if scale is (]tab), scaling is done in ValueTable
@@ -374,7 +392,7 @@ class ParamTable(Table):
     def midi(self, rowid, rqrow, val):
         ''' convert value to a MIDI bytes
         '''
-        row = self._get_arow(rowid, rqrow)
+        row = self.get1row(rowid, rqrow)
 
         # unscale
         scale = row.scale()
@@ -406,7 +424,6 @@ class ValueTable(Table):
 
     def value(self, data):
         ''' sparse lookup with interpolation
-            - context: symbol environment
             - data: single MIDI data byte
         '''
         # pylint: disable=no-member
@@ -424,9 +441,8 @@ class ValueTable(Table):
         # interpolate
         return round(row.scale() * (data - ilast) + flast, row.prec())
 
-    def midi(self, context, value):
+    def midi(self, value):
         ''' sparse lookup with interpolation
-            - context: symbol environment
             - value: floating value to be mapped to a MIDI byte
         '''
         # pylint: disable=no-member
@@ -435,15 +451,15 @@ class ValueTable(Table):
         # find the rows between which the provided value falls
         dlast = flast = row = 0
         for row in self._rows:
-            fdata = row.fdata.value(context)
+            fdata = row.fdata()
             if fdata > value:
                 break
             flast = fdata
-            dlast = row.idata.value(context)
+            dlast = row.idata()
 
         # interpolate
         return int(
-            round(row.scale.value(context) * (value - flast) + dlast, 0))
+            round(row.scale() * (value - flast) + dlast, 0))
 
 # pylint: enable=too-few-public-methods
 

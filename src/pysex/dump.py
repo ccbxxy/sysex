@@ -20,6 +20,83 @@
 
 ''' dump.py
       message IO
-
-
 '''
+
+# pylint: disable=bad-whitespace
+
+import contextlib
+from pysex import sysex
+
+SOX = 0xF0
+EOX = 0xF7
+ACT = 0xFE
+
+def consume_to(stream, thing):
+    ''' skip bytes in stream until thing
+    '''
+    while True:
+        mbyte = stream.read(1)
+        if len(mbyte) == 0:
+            return mbyte
+
+        if mbyte == thing:
+            return mbyte
+
+@contextlib.contextmanager
+def packets(fpath):
+    ''' get next message from stream
+        - return: array of midi data bytes absent F0, F7 framing
+    '''
+    with open(fpath, 'rb') as stream:
+        while True:
+            mbyte = consume_to(stream, SOX)
+            if len(mbyte) == 0:
+                return
+
+            midi = []
+
+            while True:
+                mbyte = stream.read(1)
+                if len(mbyte) == 0:
+                    return
+
+                if mbyte == ACT:
+                    continue
+
+                if mbyte == EOX:
+                    yield midi
+                    break
+
+                midi.append(mbyte)
+
+
+
+class Dump(object):
+    ''' handle translations between a set of messages and the data model
+    '''
+    def __init__(self):
+        self._device = None
+        self._vendor = None
+
+    def _devfrom(self, master, data):
+        ''' fetch device given a midi sysex message
+        '''
+        if self._device:
+            self._vendor.eat_id(data)
+            return self._device
+
+        # find the Vendor table row for this message
+        self._vendor = master.Vendors.mma_lookup(data)
+
+        # get all of this vendor's devices
+        devices = master.Devices.getrows(self._vendor.vendor)
+        self._device = master.Devices.sniff(data)
+        
+    def load(self, fpath):
+        ''' convert a dump into pile of tables
+            - fpath: path to dump file
+        '''
+        master = sysex.mod[sysex.MASTER]
+        with packets(fpath) as dumpdata:
+            for data in dumpdata:
+                dev = self._devfrom(master, data)

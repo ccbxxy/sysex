@@ -27,60 +27,16 @@
 import csv
 import os
 import copy
-import contextlib
 from pysex import sysex
 from pysex import table
 from pysex.cell import Cell
 
 __all__ = ['Mod', 'ModEndException']
 
-SOX = 0xF0
-EOX = 0xF7
-ACT = 0xFE
-
 class ModEndException(Exception):
     ''' gratuitous specialization
     '''
     pass
-
-def consume_to(stream, thing):
-    ''' skip bytes in stream until thing
-    '''
-    while True:
-        mbyte = stream.read(1)
-        if len(mbyte) == 0:
-            return mbyte
-
-        if mbyte == thing:
-            return mbyte
-
-@contextlib.contextmanager
-def packets(fpath):
-    ''' get next message from stream
-        - return: array of midi data bytes absent F0, F7 framing
-    '''
-    with open(fpath, 'rb') as stream:
-        while True:
-            mbyte = consume_to(stream, SOX)
-            if len(mbyte) == 0:
-                return
-
-            midi = []
-
-            while True:
-                mbyte = stream.read(1)
-                if len(mbyte) == 0:
-                    return
-
-                if mbyte == ACT:
-                    continue
-
-                if mbyte == EOX:
-                    yield midi
-                    break
-
-                midi.append(mbyte)
-
 
 class Mod(object):
     ''' Internal respresentation of a sysex CSV module
@@ -138,13 +94,3 @@ class Mod(object):
             self.tabs[tab.name] = tab
             setattr(self, tab.name, tab)
 
-    def marshall(self, fpath):
-        ''' convert a dump into pile of tables
-            - device: device table for parsing dump
-            - fpath: path to dump file
-        '''
-        # TEMORARY
-        # pylint: disable=no-self-use
-        with packets(fpath) as dumpdata:
-            for data in dumpdata:
-                device.marshall(data)
