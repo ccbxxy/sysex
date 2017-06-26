@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -18,13 +18,8 @@
 #   USA
 
 
-"""
-    sysex.py - provide a top-level namespace to avoid circular deps
-"""
+''' dump.py
+      message IO
 
-# pylint: disable=invalid-name
 
-__all__ = ['mods']
-
-# this maps names of Mods to corresponding instances
-mods = {}
+'''

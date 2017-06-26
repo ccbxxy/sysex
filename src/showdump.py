@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -18,13 +18,21 @@
 #   USA
 
 
-"""
-    sysex.py - provide a top-level namespace to avoid circular deps
-"""
+'''
+    showdump.py master.csv device dump.syx
+       render dump context as tables on stdout
+'''
 
-# pylint: disable=invalid-name
+from pysex import mod
 
-__all__ = ['mods']
+if __name__ == '__main__':
+    master, device, dump = sys.argv[1:]
+    
+    mod = Mod(master, device)
+    mod.marshall(mod.Device, dump)
+    mod.Device.render(stdout)
 
-# this maps names of Mods to corresponding instances
-mods = {}
+    
+
+
+    
