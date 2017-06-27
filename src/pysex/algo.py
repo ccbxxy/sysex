@@ -230,119 +230,135 @@ def _sniffer(fun):
 # TEMPORARY
 # pylint: disable=unused-argument
 
+def _byte2sniffer(dev, data):
+    return dev.getrows(
+        data[1], rqrow=None, colid='proto_id', first=True)
+    
 @_sniffer
-def akai(mod, data):
+def akai(dev, data):
+    ''' true if data stream looks like Akai data
+    '''
+    # model ID in byte 2
+    return _byte2sniffer(dev, data)
+
+@_sniffer
+def alesis(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def alesis(mod, data):
+def behr(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def behr(mod, data):
+def boss(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def boss(mod, data):
+def digi(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def digi(mod, data):
+def djtt(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def djtt(mod, data):
+def dsi(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def dsi(mod, data):
+def emu(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def emu(mod, data):
+def fishm(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def fishm(mod, data):
+def kurz(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def kurz(mod, data):
+def livid(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def livid(mod, data):
+def maudio(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def maudio(mod, data):
+def megalite(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def megalite(mod, data):
+def mucom(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def mucom(mod, data):
+def nova(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def nova(mod, data):
+def rol(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def rol(mod, data):
+def rld(dev, data):
     ''' true if data stream looks like Akai data
     '''
     pass
 
 @_sniffer
-def rld(mod, data):
-    ''' true if data stream looks like Akai data
+def yamaha(dev, data):
+    ''' true if data stream looks like Yamaha data
+        - dev: master device table
+        - data: MIDI message, vendor ID removed
+        - return: one row from the Device table
     '''
-    pass
+    # Yamaha puts device code (model id) at second byte
+    #  master protocol lines: XG, QS300, etc. should be placed
+    #  highest up on the table.  ie. all of the XG synths will
+    #  dump as 0x4C, so for reading purposes, the master XG
+    #  map is all we need
+    return _byte2sniffer(dev, data):
+    
+    
+    
 
-@_sniffer
-def yam(mod, data):
-    ''' true if data stream looks like Akai data
-    '''
-    pass
-
-def sniff(vendor, mod, data):
+def sniff(vendor, dev, data):
     ''' public interface: true if vendor sniffer is true
     '''
     try:
-        return _SNIFFERS[vendor](mod, data)
+        return _SNIFFERS[vendor](dev, data)
     except KeyError:
         raise ValueError(
             'no sniffer registered for vendor %s' % vendor)

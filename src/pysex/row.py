@@ -45,13 +45,26 @@ class Row(object):
 
         cloc = copy.copy(self.loc)
         for nth, colid in tab.colids:
+            if colid.startswith('-'):
+                # allow horizontal padding
+                continue
+            
             cloc['cell'] = nth+1
-
-            # if you want the Cell itself, use row.<colid>
+            if colid.endswith('...'):
+                # syntactic sugar.
+                #   convert remaining cols to a 'x;y;z;t' cell
+                colid = colid[0:-3]
+                subcells = []
+                scloc = copy.copy(cloc)
+                for ith, col in enumerate(data[nth:]):
+                    if not col:
+                        break
+                    scloc['arg'] = ith
+                    subcells.append(Cell(scloc, self, col))
+                self.put(colid, Cell(cloc, self, subcells))
+                break
+                
             self.put(colid, Cell(cloc, self, data[nth]))
-
-            # Cell is callable, if you need it's value, call it:
-            #   row.<colid>() or row.<colid>(args)
 
         if tab.key:
             self._keyed = self.get(tab.key)

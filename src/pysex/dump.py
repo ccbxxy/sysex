@@ -71,32 +71,17 @@ def packets(fpath):
 
 
 
-class Dump(object):
-    ''' handle translations between a set of messages and the data model
+def load(fpath):
+    ''' convert a dump into pile of tables
+        - fpath: path to dump file
     '''
-    def __init__(self):
-        self._device = None
-        self._vendor = None
+    master = sysex.mod[sysex.MASTER]
+    with packets(fpath) as dumpdata:
+        device = None
+        for data in dumpdata:
+            if not device:
+                # assumes all sysex packets in the file are from
+                #  the same device
+                device = Device.lookup(data)
 
-    def _devfrom(self, master, data):
-        ''' fetch device given a midi sysex message
-        '''
-        if self._device:
-            self._vendor.eat_id(data)
-            return self._device
-
-        # find the Vendor table row for this message
-        self._vendor = master.Vendors.mma_lookup(data)
-
-        # get all of this vendor's devices
-        devices = master.Devices.getrows(self._vendor.vendor)
-        self._device = master.Devices.sniff(data)
-        
-    def load(self, fpath):
-        ''' convert a dump into pile of tables
-            - fpath: path to dump file
-        '''
-        master = sysex.mod[sysex.MASTER]
-        with packets(fpath) as dumpdata:
-            for data in dumpdata:
-                dev = self._devfrom(master, data)
+            device.load(data)

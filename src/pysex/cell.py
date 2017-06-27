@@ -256,6 +256,7 @@ class SubstCell(Cell):
             '+':  AddCell,      # (+ v...):  additions
             '&':  AndCell,      # (& v...):  bitwise AND
             '#':  HexCell,      # (# v...):  hex values, hex strings
+            '=':  MatchCell,    # (= n t):   protocol matching
             '*':  MulCell,      # (* v...):  multiplication
             '~':  NotCell,      # (~ v...):  bitwise NOT
             '|':  OrCell,       # (| v...):  bitwise OR
@@ -385,7 +386,44 @@ class HexCell(SubstCell):
         # ... but longer lists as lists
         return val
 
+class MatchCell(SubstCell):
+    ''' implement (= n target)
+    '''
+    def __init__(self, loc, row, citer):
+        super().__init__(loc, row, citer)
+        self._seed = []
 
+    def method(self, left, right):
+        return left.append(right)
+    
+    def __call__(self, data):
+        ''' evaluate a cell that picks values out of data
+        '''
+        result = {}
+        value = self._value
+        bytec = value[0]()
+        bytec = len(data) if bytec == 0 else bytec
+
+        if isinstance(value[1], MatchCell):
+            # somebody wants to be pickin out bits:
+            #  (= 1 (= 1 :hinyb (& (#F0))) (= 1 :lonyb (& (#0F))))
+            #  should make { 'hinyb': <high>, 'lonyb': <low> }
+            # there is no top-level target
+            for acell in value[1:]:
+                temp = acell(copy.copy(data[0:bytec]))
+                result = {**result, **temp}
+        elif isinstance(value[2], SubstCell):
+            # this covers (= 1 hinyb (& (#F0)))
+            result[value[1]] = value[2](data[0:bytec])
+        else:
+            # this just fetches bytes
+            #   converting the byte stream to values falls on the caller
+            result[value[1]] = copy.copy(data[0:bytec])
+
+        del data[0:bytec]
+        return result
+        
+        
 class MulCell(SubstCell):
     ''' implement (* v v ...)
     '''
@@ -528,6 +566,7 @@ class VarCell(SubstCell):
         if len(params) > 1:
             tab = self._tabx(params[:-1])
 
+        #! add support for * and @ shorthands
         rowid = params[-1]
         return tab.getrow(rowid, self._row)
 

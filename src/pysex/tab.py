@@ -165,6 +165,7 @@ class Table(object):
             if self.meta.putcolids(self, line):
                 continue
 
+            #! integrate syntax change for | markers
             if not line[1]:
                 return
 
@@ -175,30 +176,34 @@ class Table(object):
         else:
             raise ModEndException
 
-    def getrows(self, rowid, rqrow=None, colid=None):
+    def getrows(self, rowid, rqrow=None, colid=None, first=False):
         ''' return rows where rowid matches the key value
               filter by matches of rqrow in engine field
         '''
         rows = []
-        if self.keyid:
-            try:
-                return self.index[rowid]
-            except KeyError:
-                pass
+        if colid is None:
+            if self.keyid:
+                try:
+                    return self.index[rowid]
+                except KeyError:
+                    pass
 
-        if not colid:
-            colid = 'ident'
+            colid = 'ident' if self.ident is None else self.ident
 
-        rows = [ row
-                 for row in self._rows
-                 if (getattr(row, colid)() == rowid and
-                     row.engine_match(rqrow)) ]
+        rows = []
+        for row in self._rows:
+            if (getattr(row, colid)() == rowid and
+                row.engine_match(rqrow)):
+                if first:
+                    return row
+                else:
+                    rows.append(row)
 
         if not rows:
             # dig deeper?
             parent = self.over()
             if parent:
-                return parent.getrows(rowid, rqrow, colid)
+                return parent.getrows(rowid, rqrow, colid, first)
             else:
                 raise SysexLookupError(
                     'row', self.name,
@@ -270,6 +275,13 @@ class DeviceTable(Table):
 
         super().__init__(mod, name, over, meta)
 
+    def sniff(self, data, vendor):
+        ''' ask the vendor sniff if it knows what this is
+            - data: MIDI byte buffer
+            - vendor: vendor ID detected by Vendor.mma_lookup()
+            - return: specific device table row detected or None
+        '''
+        return algo.sniff(vendor, self, data)
 
 class KBTable(Table):
     ''' Table
@@ -306,15 +318,27 @@ class SeqTable(Table):
 
 
 class HeaderTable(Table):
-    ''' Table
+    ''' Header inside each device module
+          will normally only be one line
     '''
-    pass
+    def __init__(self, mod, name, over, meta=None):
+        meta = TableMetaData([
+            [ 'Protocol', 'proto'    ],
+            [ 'Layout',   'layout'   ],
+            [ 'CC Map',   'cc_map'   ],
+            [ 'NRPN Map', 'nrpn_map' ]])
+        super().__init__(mod, name, over, meta)
 
 
 class ProtoTable(Table):
-    ''' Table
+    ''' Device-specific Protocol
+          yeah, these are a good candidate for a class decorator
     '''
-    pass
+    def __init__(self, mod, name, over, meta=None):
+        meta = TableMetaData([
+            [ 'Message Type', '*ident'   ],
+            [ 'Message String', ':string' ]])
+        super().__init__(self, mod, name, over, meta):
 
 
 class MemoryMap(Table):
