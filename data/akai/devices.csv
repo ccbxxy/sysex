@@ -1,0 +1,7 @@
+# device info,,,,,
+]Devices,DeviceInfo,,,,
+]],Model Name,Vendor ID,IDRQ Response,ID for protocol,Device Type
+*,*ident,vendor,id_response,proto_id,type
+|,S1000,akai,,(#48),tg
+|,S2000,akai,,(#48),tg
+|,S3000XL,akai,,(#48),tg;rec

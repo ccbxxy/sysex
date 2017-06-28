@@ -1,0 +1,14 @@
+# device info,,,,,
+]Devices,DeviceInfo,,,,
+]],Model Name,Vendor ID,IDRQ Response,ID for protocol,Device Type
+*,*ident,vendor,id_response,proto_id,type
+|,Alias8,livid,(#01 00 0B 00),,
+|,Base,livid,(#01 00 0C 00),,
+|,BrainJr,livid,(#01 00 0D 00),,
+|,Brain_v1,livid,(#01 00 01 00),,
+|,Brain_v2,livid,(#01 00 09 00),,
+|,CNTRL:R,livid,(#01 00 08 00),,
+|,Code,livid,(#01 00 04 00),,
+|,Ohm64,livid,(#01 00 02 00),,
+|,OhmRGB,livid,(#01 00 07 00),,
+|,block,livid,(#01 00 03 00),,

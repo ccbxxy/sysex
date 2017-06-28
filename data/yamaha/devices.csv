@@ -1,0 +1,98 @@
+# device info,,,,,
+]Devices,DeviceInfo,,,,
+]],Model Name,Module,IDRQ Response,ID for protocol,Device Type
+*,*ident,mod,id_response,proto_id,type
+|,AN1x,,(#00 41 1A 02),,syn;kb
+|,AN200,,(#00 41 02 05),,syn;seq
+|,CBX-K1XG,xg.CBX-K1,(#00 41 6b 01),,rom;kb;midi_s
+|,CP33,,(#00 43 2C 17),,
+|,CP5,,(#00 41 3F 06),,
+|,CP50,,(#00 41 40 06),,
+|,CS1x,,,,
+|,CS2x,,(#00 41 4F 03),,
+|,CS6x,,,,
+|,DB50XG,xg.DB50XG,,(#4C),rom
+|,DB50XG QS Voices,qs300.DB50XG,,(#4B),rom
+|,DTXTREME,dtx.DTXTREME,(#00 4C 73 07),,drum
+,DX1,dx.DX1,,,
+,DX5,dx.DX5,,,
+|,DX7,dx.DX7,,,
+|,DX7s,dx.DX7s,,,
+|,DX7iiD,dx.DX7iiD,,,
+|,DX7iiFD,dx.DX7iiFD,,,
+|,DX9,dx.DX9,,,
+|,DX11,dx.DX11,,,
+|,DX21,dx.DX21,,,
+|,DX.27,dx.DX27,,,
+|,DX100,dx.DX100,,,syn;kb
+|,DX200,dx.DX200,(#00 41 03 05),,syn;seq
+|,EOS/B 900,dx.EOS_B900,(#00 41 4C 01),,
+|,EX5,,,,
+|,EX5R,,,,
+|,EX7,,,,
+|,FB01,dx.FB01,,,
+|,FS1r,dx.FS1r,,,
+|,MM6,,(#00 44 45 17),,
+|,MO6,,(#00 41 33 06),,
+|,MO8,,(#00 41 34 06),,
+|,MOTIF Rack,motif.RACK,(#00 41 58 04),,
+|,MOTIF Rack ES,motif.RACK_ES,(#00 41 19 06),,
+|,MOTIF 6,motif.6,(#00 41 7C 04),,
+|,MOTIF 7,motif.7,(#00 41 7D 04),,
+|,MOTIF 8,motif.8,(#00 41 7E 04),,
+|,MOTIF XS 6,motif.XS6,(#00 41 35 06),,
+|,MOTIF XS 7,motif.XS7,(#00 41 36 06),,
+|,MOTIF XS 8,motif.XS8,(#00 41 37 06),,
+|,MOX6,,(#00 41 44 06),,
+|,MOX8,,(#00 41 45 06),,
+|,MU1xx XG,mu.xg.1xx,(#00 41 00 03),(#4C),rom;efx;midi_s
+|,MU1xx Native,mu.native.1xx,,,
+|,MU1000 XG,mu.xg.1000,(#00 41 1C 04),,
+|,MU10 XG,mu.xg.10,,,rom;efx;midi_s
+|,MU10 QS300 Voices,mu.qs300.10,,,rom;efx;midi_s
+|,MU15 XG,mu.xg.15,(#00 41 51 03),,
+|,MU2000 XG,mu.xg.2000,(#00 41 1B 04),,
+|,MU50 XG,mu.xg.50,(#00 41 46 01),,rom;efx;midi_s
+|,MU90 XG,mu.xg.90,(#00 41 37 02),,rom;efx;midi_s
+|,MU90R XG,mu.xg.90R,(#00 41 52 02),,rom;efx;midi_s
+|,MX49,,(#00 41 47 06),,
+|,NP-31 Portable Keyboard,,(#00 44 2B 19),,
+|,P-155,,(#00 43 66 19),,
+|,QS300,qs300.QS300,(#00 41 48 01),,
+|,QY70,XG.QY70,(#00 41 02 55),(#4C),
+|,QY100,XG.QY100,(#00 41 04 34),(#4C),
+|,QY300,,,,
+|,QY700,,,,
+|,RM1x,XG.RM1x,(#00 41 1D 03),,
+|,RM50,,,,
+|,RS7000,,,,
+|,RY10,RY.RY10,,,
+|,RY20,RY.RY20,,,
+|,RY30,RY.RY30,,,
+|,S03,S.S03,(#00 41 77 04),,
+|,S30,S.S30,(#00 41 23 04),,
+|,S80,S.S80,,,
+|,S90,S.S90,(#00 41 05 2a),,
+|,S90ES,S.S90es,(#00 41 32 06),,
+|,SDX3000 Keyboard,,(#00 41 62 01),,
+|,SU10,,,,
+|,SU200,,,,
+|,SU700,,,,
+|,SY22,,,,
+|,SY35,,,,
+|,SY55,,,,
+|,SY77,,,,
+|,SY85,,,,
+|,SY99,,,,
+|,refaceCP,reface.CP,(#00 41 52 06),,piano;kb
+|,refaceCS,reface.CS,(#00 41 51 06),,syn;kb
+|,refaceDX,reface.DX,(#00 41 53 06),,syn;kb
+|,refaceYC,reface.YC,(#00 41 54 06),,syn;kb
+|,TG7,dx.TG7,,,
+|,TG33,,,,
+|,TG500,,,,
+|,TQ5,dx.TQ5,,,
+|,TX7,dx.TX7,,,
+|,TX802,dx.TX802,,,
+|,TX816,dx.TX816,,,
+|,TX81z,dx.TX81z,,,
