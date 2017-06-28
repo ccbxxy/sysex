@@ -566,8 +566,15 @@ class VarCell(SubstCell):
         if len(params) > 1:
             tab = self._tabx(params[:-1])
 
-        #! add support for * and @ shorthands
         rowid = params[-1]
+        if rowid == '@':
+            if self._row.tab.ident:
+                rowid = self._row.tab.ident
+            else:
+                rowid = 'ident'
+        elif rowid == '*':
+            rowid = self._row.key
+            
         return tab.getrow(rowid, self._row)
 
     def _tabx(self, params):
