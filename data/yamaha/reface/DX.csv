@@ -1,0 +1,167 @@
+# yamaha,reface,,,,,,,,
+,,,,,,,,,
+]Maniphest,ManiphestTable,,,,,,,,
+*,*device,chan,F0proto,F0layout,CCproto,RPNproto,NRPNproto,,
+|,refaceDX,0,(]Proto),(]Layout),#(]CC),,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+]Proto,ProtocolTable,None,,,,,,,
+*,op,string...,,,,,,,
+|,rq.bulk,,(& (#20) (:chan)),(#7F 1C),,(#05),(#00 00 00),,
+|,rq.bulk.tg,,(& (#20) (:chan)),(#7F 1C),,(#05),(#0E 0F 00),,
+|,send.bulk,,(& (#10) (:chan)),(#7F 1C),(+ 3 :bytec),(#05),(:addr),(:data),(:csum)
+|,recv.bulk,,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),(= 2 bytec),(= 1 model),(=3 addr),(= (- :bytec 3) data),(=1 csum)
+|,rq.param,,(& (#30) (:chan)),(#7F 1C),,(#05),(:addr),,
+|,send.param,,(& (#10) (:chan)),(#7F 1C),,(#05),(:addr),(:data),
+|,recv.param,,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),,(= 1 model),(=3 addr),(= 0 data),
+,,,,,,,,,
+]Layout,MemoryMap,None,,,,,,,
+*,*ident,*addr,name,count,stride,submap,params,,
+|,dx.sys,(#00 00 00),reface DX System,1,0,(]reface SystemLayout),None,,
+|,dx.part,(#30 00 00),reface DX Voice,1,0,(]Part),None,,
+|,dx.operator,(#31 00 00),reface DX FM Operator,4,(#01 00),(]Operator),None,,
+|,cs.bulk,(#0E 0F 00),reface Bulk Header,1,0,None,None,# voice addrs follow,
+,,,,,,,,,
+,,,,,,,,,
+]Part,,,,,,,,,
+*,*ident,addr,name,count,stride,submap,params,,
+#,Base:,(#30 00 00),,,,,,,
+,part.name,(#00),Voice Name,1,1,None,(@Params @),,
+,reserved,(#0A),Reserved,1,1,None,None,,
+,reserved,(#0B),Reserved,1,1,None,None,,
+,part.transpose,(#0C),Transpose,1,1,None,(@Params @),,
+,part.mode,(#0D),Mono Mode,1,1,None,(@Params @),,
+,part.portamento,(#0E),Portamento Time,1,1,None,(@Params @),,
+,part.pb.range,(#0F),Pitch Bend Range,1,1,None,(@Params @),,
+,part.algorithm,(#10),Algorithm,1,1,None,(@Params @),,
+,part.lfo.wave,(#11),LFO Wave,1,1,None,(@Params @),,
+,part.lfo.speed,(#12),LFO Speed,1,1,None,(@Params @),,
+,part.lfo.delay,(#13),LFO Delay,1,1,None,(@Params @),,
+,part.lfo.pmod,(#14),LFO Pitch Mod Depth,1,1,None,(@Params @),,
+,part.peg.rate.attack,(#15),Pitch EG Attack Rate,1,1,None,(@Params @),,
+,part.peg.rate.decay,(#16),Pitch EG Decay Rate,1,1,None,(@Params @),,
+,part.peg.rate.sustain,(#17),Pitch EG Sustain Rate,1,1,None,(@Params @),,
+,part.peg.rate.release,(#18),Pitch EG Release Rate,1,1,None,(@Params @),,
+,part.peg.level.attack,(#19),Pitch EG Attack Level,1,1,None,(@Params @),,
+,part.peg.level.decay,(#1A),Pitch EG Decay Level,1,1,None,(@Params @),,
+,part.peg.level.sustain,(#1B),Pitch EG Sustain Level,1,1,None,(@Params @),,
+,part.peg.level.release,#(1C),Pitch EG Release Level,1,1,None,(@Params @),,
+,part.fx,#(1D),Effects,2,3,(]Effects),None,,
+,,,,,,,,,
+,,,,,,,,,
+]Effects,MemoryMap,,,,,,,,
+*,*ident,addr,name,count,stride,submap,params,,
+#,Base:,(#30 00 1D),,,,,,,
+,part.fx.type,(#00),Effect Type,1,1,None,(@Params @),,
+,part.fx.param.1,(#01),Effect Param 1,1,1,None,(@Params @),,
+,part.fx.param.2,(#02),Effect Param 2,1,1,None,(@Params @),,
+,,,,,,,,,
+,,,,,,,,,
+]Params,ParamTable,None,,,,,,,
+*,*ident,engine,name,bytec,range,render,scale,shift,units
+#,,... DX only,,,,,,,
+|,part.name,None,Voice Name,1,32..126,MIDI7,(* 1),(+ 0),Ascii
+|,reserved,None,Reserved,1,0,MIDI7,(* 1),(+ 0),
+|,reserved,None,Reserved,1,0,MIDI7,(* 1),(+ 0),
+|,part.transpose,None,Transpose,1,(#28)..(#58),MIDI7,(* 1),(- 64),@-24..+24 semitones
+|,part.mode,None,Mono Mode,1,0;1;2,MIDI7,(* 1),(+ 0),poly;mono-full;mono-legato
+|,part.portamento,None,Portamento Time,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.pb.range,None,Pitch Bend Range,1,(#28)..(#58),MIDI7,(* 1),(+ 0),@-24..+24 semitones
+|,part.algorithm,None,Algorithm,1,0..(#0B),MIDI7,(* 1),(+ 0),@algo #1..12
+|,part.lfo.wave,None,LFO Wave,1,0;1;2;3;4;5;6,MIDI7,(* 1),(+ 0),sin;tri;upsaw;dnsaw;sq;s&h8;s&h
+|,part.lfo.speed,None,LFO Speed,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.lfo.delay,None,LFO Delay,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.lfo.pmod,None,LFO Pitch Mod Depth,1,0..127,MIDI7,(* 1),(+ 0),no LFO..Max
+|,part.peg.attack.rate,None,Pitch EG Attack Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,part.peg.decay.rate,None,Pitch EG Decay Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,part.peg.sustain.rate,None,Pitch EG Sustain Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,part.peg.release.rate,None,Pitch EG Release Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,part.peg.attack.level,None,Pitch EG Attack Level,1,(#10)..(#70),MIDI7,(* 1),(- 64),@-48..+48 semitones
+|,part.peg.decay.level,None,Pitch EG Decay Level,1,(#10)..(#70),MIDI7,(* 1),(- 64),@-48..+48 semitones
+|,part.peg.sustain.level,None,Pitch EG Sustain Level,1,(#10)..(#70),MIDI7,(* 1),(- 64),@-48..+48 semitones
+|,part.peg.release.level,None,Pitch EG Release Level,1,(#10)..(#70),MIDI7,(* 1),(- 64),@-48..+48 semitones
+#,,,,,,,,,
+|,part.fx.type,None,Effect Type,1,0;1;2;3;4;5;6;7,MIDI7,(* 1),(+ 0),thru;dist;twah;cho;fla;pha;dly;rev
+|,part.fx.param.1,None,Effect Param 1,1,0..127,MIDI7,(* 1),(+ 0),(EffectParams (% @ .val) name)
+|,part.fx.param.2,None,Effect Param 2,1,0..127,MIDI7,(* 1),(+ 0),(EffectParams (% @ .val) name)
+,,,,,,,,,
+,,,,,,,,,
+]EffectParams,ChoiceTable,None,,,,,,,
+*,@ident,*data,name,table,,,,,
+|,part.fx.param.1.0,None,Thru,,,,,,
+|,part.fx.param.1.1,None,Drive,,,,,,
+|,part.fx.param.1.2,None,Sensitivity,,,,,,
+|,part.fx.param.1.3,None,Depth,,,,,,
+|,part.fx.param.1.4,None,Depth,,,,,,
+|,part.fx.param.1.5,None,Depth,,,,,,
+|,part.fx.param.1.6,None,Depth,,,,,,
+|,part.fx.param.1.7,None,Depth,,,,,,
+|,part.fx.param.2.0,None,Thru,,,,,,
+|,part.fx.param.2.1,None,Tone,,,,,,
+|,part.fx.param.2.2,None,Resonance,,,,,,
+|,part.fx.param.2.3,None,Rate,,,,,,
+|,part.fx.param.2.4,None,Rate,,,,,,
+|,part.fx.param.2.5,None,Rate,,,,,,
+|,part.fx.param.2.6,None,Time,,,,,,
+|,part.fx.param.2.7,None,Time,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+]Operator,MemoryMap,,,,,,,,
+*,*ident,addr,name,count,stride,submap,params,,
+#,,(#31 op 00),,,,,,,
+|,op.on_off,(#00),Operator On/Off,1,1,,(@OpParam @),,
+|,op.eg.attack.rate,(#01),Operator EG Attack Rate,1,1,,(@OpParam @),,
+|,op.eg.decay.rate,(#02),Operator EG Decay Rate,1,1,,(@OpParam @),,
+|,op.eg.sustain.rate,(#03),Operator EG Sustain Rate,1,1,,(@OpParam @),,
+|,op.eg.release.rate,(#04),Operator EG Release Rate,1,1,,(@OpParam @),,
+|,op.eg.attack.level,(#05),Operator EG Attack Level,1,1,,(@OpParam @),,
+|,op.eg.decay.level,(#06),Operator EG Decay Level,1,1,,(@OpParam @),,
+|,op.eg.sustain.level,(#07),Operator EG Sustain Level,1,1,,(@OpParam @),,
+|,op.eg.release.level,(#08),Operator EG Release Level,1,1,,(@OpParam @),,
+|,op.eg.kb.rate.scale,(#09),Operator EG Keyboard Rate Scaling,1,1,,(@OpParam @),,
+|,op.kb.level.scale.depth.left,(#0A),Operator Keyboard Level Scaling Depth Left,1,1,,(@OpParam @),,
+|,op.kb.level.scale.depth.right,(#0B),Operator Keyboard Level Scaling Depth Right,1,1,,(@OpParam @),,
+|,op.kb.level.scale.curve.left,(#0C),Op Keyboard Level Scaling Curve Left,1,1,,(@OpParam @),,
+|,op.kb.level.scale.curve.right,(#0D),Op Keyboard Level Scaling Curve RIght,1,1,,(@OpParam @),,
+|,op.lfo.amd.depth,(#0E),Op LFO Amp Mod Depth,1,1,,(@OpParam @),,
+|,op.lfo.pmd.on_off,(#0F),Op LFO Pitch Mod On/Off,1,1,,(@OpParam @),,
+|,op.peg.on_off,(#10),Op Pitch EG On/Off,1,1,,(@OpParam @),,
+|,op.velocity.sens,(#11),Op Velocity Sensitivity,1,1,,(@OpParam @),,
+|,op.level.output,(#12),Op Output Level,1,1,,(@OpParam @),,
+|,op.level.feedback,(#13),Op Feedback Level,1,1,,(@OpParam @),,
+|,op.feedback.type,(#14),Op Feedback Type,1,1,,(@OpParam @),,
+|,op.freq.mode,(#15),Op Frequency Mode,1,1,,(@OpParam @),,
+|,op.freq.course,(#16),Op Frequency Coarse,1,1,,(@OpParam @),,
+|,op.freq.fine,(#17),Op Frequency Fine,1,1,,(@OpParam @),,
+,op.freq.detune,(#18),Op Frequency Detune,1,1,,(@OpParam @),,
+,,,,,,,,,
+,,,,,,,,,
+]OpParam,ParamTable,None,,,,,,,
+*,*ident,engine,name,bytec,range,render,scale,shift,units
+#,,... DX only,,,,,,,
+|,op.on_off,None,Operator On/Off,1,0;1,MIDI7,(* 1),(+ 0),off;on
+|,op.eg.attack.rate,None,Operator EG Attack Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,op.eg.decay.rate,None,Operator EG Decay Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,op.eg.sustain.rate,None,Operator EG Sustain Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,op.eg.release.rate,None,Operator EG Release Rate,1,0..127,MIDI7,(* 1),(+ 0),slow..fast
+|,op.eg.attack.level,None,Operator EG Attack Level,1,0..127,MIDI7,(* 1),(+ 0),no output..max
+|,op.eg.decay.level,None,Operator EG Decay Level,1,0..127,MIDI7,(* 1),(+ 0),no output..max
+|,op.eg.sustain.level,None,Operator EG Sustain Level,1,0..127,MIDI7,(* 1),(+ 0),no output..max
+|,op.eg.release.level,None,Operator EG Release Level,1,0..127,MIDI7,(* 1),(+ 0),no output..max
+|,op.eg.kb.rate.scale,None,Operator EG Keyboard Rate Scaling,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,op.kb.level.scale.depth.left,None,Operator Keyboard Level Scaling Depth Left,1,0..127,MIDI7,(* 1),(+ 0),flat..max
+|,op.kb.level.scale.depth.right,None,Operator Keyboard Level Scaling Depth Right,1,0..127,MIDI7,(* 1),(+ 0),flat..max
+|,op.kb.level.scale.curve.left,None,Op Keyboard Level Scaling Curve Left,1,0;1;2;3,MIDI7,(* 1),(+ 0),-lin;-exp;+lin;+exp
+|,op.kb.level.scale.curve.right,None,Op Keyboard Level Scaling Curve RIght,1,0;1;2;3,MIDI7,(* 1),(+ 0),-lin;-exp;+lin;+exp
+|,op.lfo.amd.depth,None,Op LFO Amp Mod Depth,1,0..127,MIDI7,(* 1),(+ 0),no amp..max
+|,op.lfo.pmd.on_off,None,Op LFO Pitch Mod On/Off,1,0;1,MIDI7,(* 1),(+ 0),off;on
+|,op.peg.on_off,None,Op Pitch EG On/Off,1,0;1,MIDI7,(* 1),(+ 0),off;on
+|,op.velocity.sens,None,Op Velocity Sensitivity,1,0..127,MIDI7,(* 1),(+ 0),no touch resp..max
+|,op.level.output,None,Op Output Level,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,op.level.feedback,None,Op Feedback Level,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,op.feedback.type,None,Op Feedback Type,1,0;1,MIDI7,(* 1),(+ 0),saw;square
+|,op.freq.mode,None,Op Frequency Mode,1,0;1,MIDI7,(* 1),(+ 0),ratio;fixed
+|,op.freq.course,None,Op Frequency Coarse,1,0..127,MIDI7,(* 1),(+ 0),1..127
+|,op.freq.fine,None,Op Frequency Fine,1,0..127,MIDI7,(* 1),(+ 0),1..127
+|,op.freq.detune,None,Op Frequency Detune,1,0..127,MIDI7,(* 1),(- 64),@-64..+63

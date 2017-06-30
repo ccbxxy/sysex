@@ -1,0 +1,106 @@
+# yamaha,reface,,,,,,,,
+,,,,,,,,,
+]TOC,TOCTable,,,,,,,,
+*,*device,chan,F0proto,F0layout,CCproto,RPNproto,NRPNproto,,
+|,refaceCS,0,(]Proto),(]Layout),(]CC),None,None,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+]Proto,ProtocolTable,None,,,,,,,
+*,op,string...,,,,,,,
+|,rq.bulk,,(& (#20) (:chan)),(#7F 1C),,(#03),(#00 00 00),,
+|,rq.bulk.tg,,(& (#20) (:chan)),(#7F 1C),,(#03),(#0E 0F 00),,
+|,send.bulk,,(& (#10) (:chan)),(#7F 1C),(+ 3 :bytec),(#03),(:addr),(:data),(:csum)
+|,recv.bulk,,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),(= 2 bytec),(= 1 model),(=3 addr),(= (- :bytec 3) data),(=1 csum)
+|,rq.param,,(& (#30) (:chan)),(#7F 1C),,(#03),(:addr),,
+|,send.param,,(& (#10) (:chan)),(#7F 1C),,(#03),(:addr),(:data),
+|,recv.param,,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),,(= 1 model),(=3 addr),(= 0 data),
+,,,,,,,,,
+,,,,,,,,,
+]Layout,MemoryMap,None,,,,,,,
+*,*ident,addr,name,count,stride,submap,params,,
+|,cs.sys,(#00 00 00),reface CS System,1,0,(]reface SystemLayout),None,,
+|,cs.part,(#30 00 00),reface CS Voice,1,0,(]PartLayout),None,,
+|,cs.bulk,(#0E 0F 00),reface Bulk Header,1,0,None,None,# voice addrs follow,
+,,,,,,,,,
+,,,,,,,,,
+]Part,,,,,,,,,
+*,*ident,addr,name,count,stride,submap,params,,
+#,Base:,(#30 00 00),,,,,,,
+,part.volume,(#00),Volume,1,1,None,(@Params @),,
+,reserved,(#01),Reserved,1,1,None,None,,
+,part.lfo.assign,(#02),LFO Assign,1,1,None,(@Params @),,
+,part.lfo.depth,(#03),LFO Depth,1,1,None,(@Params @),,
+,part.lfo.speed,(#04),LFO Speed,1,1,None,(@Params @),,
+,part.portamento,(#05),Portamento,1,1,None,(@Params @),,
+,part.osc.type,(#06),Oscillator Type,1,1,None,(@Params @),,
+,part.osc.texture,(#07),Oscillator Texture,1,1,None,(@Params @),,
+,part.osc.modulation,(#08),Oscillator Modulation,1,1,None,(@Params @),,
+,part.filter.0.cutoff,(#09),Filter Cutoff,1,1,None,(@Params @),,
+,part.filter.0.resonance,(#0A),Filter Resonance,1,1,None,(@Params @),,
+,part.eg.0.amp_to_filter,(#0B),EG Balance,1,1,None,(@Params @),,
+,part.eg.0.attack,(#0C),EG Attack,1,1,None,(@Params @),,
+,part.eg.0.decay,(#0D),EG Decay,1,1,None,(@Params @),,
+,part.eg.0.sustain,(#0E),EG Sustain,1,1,None,(@Params @),,
+,part.eg.0.release,(#0F),EG Release,1,1,None,(@Params @),,
+,part.fx.0.type,(#10),Effect Type,1,1,None,(@Params @),,
+,part.fx.0.depth,(#11),Effect Depth,1,1,None,(@Params @),,
+,part.fx.0.rate,(#12),Effect Rate,1,1,None,(@Params @),,
+,,,,,,,,,
+,,,,,,,,,
+]Params,ParamTable,None,,,,,,,
+*,*ident,engine,name,bytec,range,render,scale,shift,units
+#,,... CS only,,,,,,,
+|,part.volume,None,Volume,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,reserved,None,Reserved,1,None,None,(* 1),(+ 0),None
+|,part.lfo.assign,None,LFO Assign,1,0;1;2;3;4,MIDI7,(* 1),(+ 0),off;amp;filter;pitch;osc
+|,part.lfo.depth,None,LFO Depth,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.lfo.speed,None,LFO Speed,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.portamento,None,Portamento,1,0;1..127,MIDI7,(* 1),(+ 0),poly;mono_time
+|,part.osc.type,None,Oscillator Type,1,0;1;2;3;4,MIDI7,(* 1),(+ 0),multisaw;pulse;osc_sync;ring_mod;FM
+|,part.osc.texture,None,Oscillator Texture,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.osc.modulation,None,Oscillator Modulation,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.filter.0.cutoff,None,Filter Cutoff,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.filter.0.resonance,None,Filter Resonance,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.amp_to_filter,None,EG Balance,1,0..127,MIDI7,(* 1),(+ 0),AEGmax..FEGmax
+|,part.eg.0.attack,None,EG Attack,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.decay,None,EG Decay,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.sustain,None,EG Sustain,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.release,None,EG Release,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.fx.0.type,None,Effect Type,1,0;1;2;3;4,MIDI7,(* 1),(+ 0),dist;cho;fla;pha;del;off
+|,part.fx.0.depth,None,Effect Depth,1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.fx.0.rate,None,Effect Rate,1,0..127,MIDI7,(* 1),(+ 0),0..127
+,,,,,,,,,
+,,,,,,,,,
+]CC,ParamTable,,,,,,,,
+*,*ident,engine,name,bytec,range,render,scale,shift,units
+|,part.fx.0.type.dist,None,Effects Type Distortion,17;1,0..25,MIDI7,(* 1),(+ 0),distortion
+|,part.fx.0.type.chofla,None,Effects Type Chorus/Flange,17;1,26..51,MIDI7,(* 1),(+ 0),chorus/flange
+|,part.fx.0.type.phaser,None,Effects Type Phaser,17;1,52..76,MIDI7,(* 1),(+ 0),phaser
+|,part.fx.0.type.delay,None,Effects Type Delay,17;1,77..102,MIDI7,(* 1),(+ 0),delay
+|,part.fx.0.type.thru,None,Effects Type Off (Thru),17;1,103..127,MIDI7,(* 1),(+ 0),off/thru
+|,part.fx.0.depth,None,Effect Depth,18;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.fx.0.rate,None,Effect Rate,19;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.portamento.poly,None,Polyphonic Portamento,20;1,0,MIDI7,(* 1),(+ 0),polyphonic portamento
+|,part.portamento.speed,None,Portamento Speed,20;1,1..127,MIDI7,(* 1),(+ 0),portamento time
+|,part.filter.0.resonance,None,Filter Resonance,71;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.filter.0.cutoff,None,Filter Cutoff,74;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.lfo.speed,None,LFO Speed,76;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.lfo.depth,None,LFO Depth,77;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.lfo.assign.off,None,LFO Assign Off,78;1,0..25,MIDI7,(* 1),(+ 0),off
+|,part.lfo.assign.amp,None,LFO Assign Amp,78;1,26..51,MIDI7,(* 1),(+ 0),amp
+|,part.lfo.assign.filter,None,LFO Assign Filter,78;1,52..76,MIDI7,(* 1),(+ 0),filter
+|,part.lfo.assign.pitch,None,LFO Assign Pitch,78;1,77..102,MIDI7,(* 1),(+ 0),pitch
+|,part.lfo.assign.osc,None,LFO Assign Oscillator,78;1,103..127,MIDI7,(* 1),(+ 0),oscillator
+|,part.osc.type.saw,None,Oscillator Type Multi Saw,80;1,0..25,MIDI7,(* 1),(+ 0),multisaw
+|,part.osc.type.pulse,None,Oscillator Type Pulse,80;1,26..51,MIDI7,(* 1),(+ 0),pulse
+|,part.osc.type.sync,None,Oscillator Type Oscillator Sync,80;1,52..76,MIDI7,(* 1),(+ 0),oscillator sync
+|,part.osc.type.ringmod,None,Oscillator Type Ring Modulation,80;1,77..102,MIDI7,(* 1),(+ 0),ring mod
+|,part.osc.type.fm,None,Oscillator Type FM,80;1,103..127,MIDI7,(* 1),(+ 0),FM
+|,part.osc.texture,None,Oscillator Texture,81;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.osc.modulation,None,Oscillator Modulation,82;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.amp_to_filter,None,Amp to Filter EG Balance,83;1,0..127,MIDI7,(* 1),(- 64),AEGmax..FEGmax
+|,part.eg.0.attack,None,EG Attack,73;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.decay,None,EG Decay,75;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.sustain,None,EG Sustain,79;1,0..127,MIDI7,(* 1),(+ 0),0..127
+|,part.eg.0.release,None,EG Release,72;1,0..127,MIDI7,(* 1),(+ 0),0..127

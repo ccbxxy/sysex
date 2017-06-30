@@ -1,0 +1,81 @@
+# yamaha,reface,,,,,,,,,
+,,,,,,,,,,
+]Maniphest,ManiphestTable,,,,,,,,,
+*,*device,chan,F0proto,F0layout,CCproto,RPNproto,NRPNproto,,,
+|,refaceCS,0,(]Proto),(]Layout),(]CC),{]RPN),(]NRPN),,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+]Proto,ProtocolTable,None,,,,,,,,
+*,op,string...,,,,,,,,
+|,rq.bulk,(& (#20) (:chan)),(#7F 1C),,(#03),(#00 00 00),,,,
+|,rq.bulk.tg,(& (#20) (:chan)),(#7F 1C),,(#03),(#0E 0F 00),,,,
+|,send.bulk,(& (#10) (:chan)),(#7F 1C),(+ 3 :bytec),(#03),(:addr),(:data),(:csum),,
+|,recv.bulk,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),(= 2 bytec),(= 1 model),(=3 addr),(= (- :bytec 3) data),(=1 csum),,
+|,rq.param,(& (#30) (:chan)),(#7F 1C),,(#03),(:addr),,,,
+|,send.param,(& (#10) (:chan)),(#7F 1C),,(#03),(:addr),(:data),,,
+|,recv.param,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),,(= 1 model),(=3 addr),(= 0 data),,,
+,,,,,,,,,,
+]Layout,MemoryMap,None,,,,,,,,
+*,*ident,name,*addr,count,stride,submap,params,,,
+|,cs.sys,reface CS System,(#00 00 00),1,0,(]reface SystemLayout),None,,,
+|,cs.part,reface CS Voice,(#30 00 00),1,0,(]PartLayout),None,,,
+|,cs.bulk,reface Bulk Header,(#0E 0F 00),1,0,None,None,# voice addrs follow,,
+,,,,,,,,,,
+,,,,,,,,,,
+]PartLayout,,,,,,,,,,
+*,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[30 00 00],,,,,,,,
+,part.volume,00h,1,cs,Volume,0..127,MIDI7,1,0,0..127
+,reserved,01h,1,cs,Reserved,None,None,None,None,None
+,part.lfo.assign,02h,1,cs,LFO Assign,0;1;2;3;4,MIDI7,1,0,off;amp;filter;pitch;osc
+,part.lfo.depth,03h,1,cs,LFO Depth,0..127,MIDI7,1,0,0..127
+,part.lfo.speed,04h,1,cs,LFO Speed,0..127,MIDI7,1,0,0..127
+,part.portamento,05h,1,cs,Portamento,0;1..127,MIDI7,1,0,poly;mono_time
+,part.osc.type,06h,1,cs,Oscillator Type,0;1;2;3;4,MIDI7,1,0,multisaw;pulse;osc_sync;ring_mod;FM
+,part.osc.texture,07h,1,cs,Oscillator Texture,0..127,MIDI7,1,0,0..127
+,part.osc.modulation,08h,1,cs,Oscillator Modulation,0..127,MIDI7,1,0,0..127
+,part.filter.0.cutoff,09h,1,cs,Filter Cutoff,0..127,MIDI7,1,0,0..127
+,part.filter.0.resonance,0Ah,1,cs,Filter Resonance,0..127,MIDI7,1,0,0..127
+,part.eg.0.amp_to_filter,0Bh,1,cs,EG Balance,0..127,MIDI7,1,0,AEGmax..FEGmax
+,part.eg.0.attack,0Ch,1,cs,EG Attack,0..127,MIDI7,1,0,0..127
+,part.eg.0.decay,0Dh,1,cs,EG Decay,0..127,MIDI7,1,0,0..127
+,part.eg.0.sustain,0Eh,1,cs,EG Sustain,0..127,MIDI7,1,0,0..127
+,part.eg.0.release,0Fh,1,cs,EG Release,0..127,MIDI7,1,0,0..127
+,part.fx.0.type,10h,1,cs,Effect Type,0;1;2;3;4,MIDI7,1,0,dist;cho;fla;pha;del;off
+,part.fx.0.depth,11h,1,cs,Effect Depth,0..127,MIDI7,1,0,0..127
+,part.fx.0.rate,12h,1,cs,Effect Rate,0..127,MIDI7,1,0,0..127
+,,,,,,,,,,
+,,,,,,,,,,
+]refaceDXPart,,,,,,,,,,
+,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[30 00 00],,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+]refaceDXOp,,,,,,,,,,
+,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[31 00 00],,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+]refaceYC,,,,,,,,,,
+,id,offset,bytec,engine,name,range,render,scale,shift,units
+#,,[30 00 00],,,,,,,,
+,part.volume,00h,1,yc,Volume,0..127,MIDI7,1,0,0..127
+,part.voice,02h,1,yc,Voice,0..4,MIDI7,1,0,ham;vox;far;ace;yc
+,part.org.draw.1,03h,1,yc,Drawbar 16’,0..6,MIDI7,1,0,0..6
+,part.org.draw.2,04h,1,yc,Drawbar 5 1/3’,0..6,MIDI7,1,0,0..6
+,part.org.draw.3,05h,1,yc,Drawbar 8’,0..6,MIDI7,1,0,0..6
+,part.org.draw.4,06h,1,yc,Drawbar 4’,0..6,MIDI7,1,0,0..6
+,part.org.draw.5,07h,1,yc,Drawbar 2 2/3’,0..6,MIDI7,1,0,0..6
+,part.org.draw.6,08h,1,yc,Drawbar 2’,0..6,MIDI7,1,0,0..6
+,part.org.draw.7,09h,1,yc,Drawbar 1 3/5’,0..6,MIDI7,1,0,0..6
+,part.org.draw.8,0Ah,1,yc,Drawbar 1 1/3’,0..6,MIDI7,1,0,0..6
+,part.org.draw.9,0Bh,1,yc,Drawbar 1’,0..6,MIDI7,1,0,0..6
+,part.org.cv.sw,0Ch,1,yc,Vibrato/Chorus,0;1,MIDI7,1,0,vib;cho
+,part.org.cv.depth,0Dh,1,yc,Vib/Cho Depth,0..4,MIDI7,1,0,0..4
+,part.org.perc.sw,0Eh,1,yc,Percussion On/Off,0;1,MIDI7,1,0,off;on
+,part.org.perc.harm,0Fh,1,yc,Percussion Harmonic,0;1,MIDI7,1,0,2nd;3rd
+,part.org.perc.length,10h,1,yc,Percussion Length,0..4,MIDI7,1,0,0..4
+,part.org.rotary.speed,11h,1,yc,Rotary,0;1;2;3,MIDI7,1,0,off;stop;slow;fast;first
+,part.distortion.level,12h,1,yc,Distortion,0..127,MIDI7,1,0,0..127
+,part.reverb.level,13h,1,yc,Reverb Level,0..127,MIDI7,1,0,0..127

@@ -17,7 +17,7 @@
 ,,,,,,,,,,
 # MemoryMaps,,,,,,,,,,
 ]Layout,MemoryMap,,,,,,,,,
-#,*ident,name,*addr,count,stride,submap,---,---,---,params
+,,,,,,,,,,
 |,sys,XG System,(#00 00 00),1,1,System,,,,
 |,info,XG Information,(#01 00 00),1,1,Information,,,,
 |,effect,XG Effect 1,(#02 01 00),1,1,Effect1,,,,
