@@ -1,26 +1,26 @@
 # yamaha,reface,,# shared for all reface,,,,,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
-]SystemLayout,MemoryMap,None,,,# shared for all reface,,,,,
+]System,MemoryMap,None,,,# shared for all reface,,,,,
 ]],Key,,,instances,Instance Width,MMap,,,,Param Descriptor
 *,*ident,addr,name,count,stride,map,---,---,---,values
-|,sys.tx.chan,(#00 00 00),MIDI Transmit Channel,1,1,,,,,(@SystemParams *)
-|,sys.rx.chan,(#00 00 01),MIDI Receive Channel,1,1,,,,,(@SystemParams *)
-|,sys.tune,(#00 00 02),Master Tune,1,1,,,,,(@SystemParams *)
-|,sys.sw.local_ctrl,(#00 00 06),Local Control,1,1,,,,,(@SystemParams *)
-|,sys.transpose,(#00 00 07),Master Transpose,1,1,,,,,(@SystemParams *)
-|,sys.tempo,(#00 00 08),Tempo,1,1,,,,,(@SystemParams *)
-|,sys.lcd.contrast,(#00 00 0A),LCD Contrast,1,1,,,,,(@SystemParams *)
-|,sys.sw.ped.0.type,(#00 00 0B),Sus Pedal Type,1,1,,,,,(@SystemParams *)
-|,sys.sw.apo,(#00 00 0C),Auto Power Off,1,1,,,,,(@SystemParams *)
-|,sys.sw.speaker,(#00 00 0D),Speaker On/Off,1,1,,,,,(@SystemParams *)
-|,sys.sw.midi_ctrl,(#00 00 0E),Midi Control On/Off,1,1,,,,,(@SystemParams *)
-|,sys.pb.range,(#00 00 0F),Pitch Bend Range,1,1,,,,,(@SystemParams *)
-|,sys.sw.ped.0.func,(#00 00 14),Foot Volume/Sustain,1,1,,,,,(@SystemParams *)
+|,sys.tx.chan,(#00 00 00),MIDI Transmit Channel,1,1,,,,,(@Params *)
+|,sys.rx.chan,(#00 00 01),MIDI Receive Channel,1,1,,,,,(@Params *)
+|,sys.tune,(#00 00 02),Master Tune,1,1,,,,,(@Params *)
+|,sys.sw.local_ctrl,(#00 00 06),Local Control,1,1,,,,,(@Params *)
+|,sys.transpose,(#00 00 07),Master Transpose,1,1,,,,,(@Params *)
+|,sys.tempo,(#00 00 08),Tempo,1,1,,,,,(@Params *)
+|,sys.lcd.contrast,(#00 00 0A),LCD Contrast,1,1,,,,,(@Params *)
+|,sys.sw.ped.0.type,(#00 00 0B),Sus Pedal Type,1,1,,,,,(@Params *)
+|,sys.sw.apo,(#00 00 0C),Auto Power Off,1,1,,,,,(@Params *)
+|,sys.sw.speaker,(#00 00 0D),Speaker On/Off,1,1,,,,,(@Params *)
+|,sys.sw.midi_ctrl,(#00 00 0E),Midi Control On/Off,1,1,,,,,(@Params *)
+|,sys.pb.range,(#00 00 0F),Pitch Bend Range,1,1,,,,,(@Params *)
+|,sys.sw.ped.0.func,(#00 00 14),Foot Volume/Sustain,1,1,,,,,(@Params *)
 ,,,,,,,,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
-]SystemParams,ParamTable,None,,,,,,,,
+]Params,ParamTable,None,,,,,,,,
 *,*ident,engine,param,bytec,range,cur,render,scale,shift,units
 |,sys.tx.chan,cp;cs;dx;yc,MIDI Transmit Channel,1,0..15;127,0,MIDI7,(* 1),(+ 0),@1..16;off
 |,sys.rx.chan,cp;cs;dx;yc,MIDI Receive Channel,1,0..15;127,0,MIDI7,(* 1),(+ 0),@1..16;off
@@ -28,7 +28,7 @@
 |,sys.sw.local_ctrl,cp;cs;dx;yc,Local Control,1,0;1,1,MIDI7,(* 1),(+ 0),@off;on
 |,sys.transpose,cp;cs;dx;yc,Master Transpose,1,(#34)..(#4C),(#40),MIDI7,(* 1),(- 12),@-12..+12 semitones
 |,sys.tempo,cs;dx,Tempo,2,30..300,120,MIDI7,(* 1),(+ 0),bpm
-|,sys.lcd.contrast,dx,LCD Contrast,1,0..63,32,MIDI7,(* 1),(+ 0),
+|,sys.lcd.contrast,dx,LCD Contrast,1,0..63,32,MIDI7,(* 1),(+ 0),Contrast
 |,sys.sw.ped.0.type,cp;dx,Sus Pedal Type,1,0;1,1,MIDI7,(* 1),(+ 0),@fc3;fc4/5
 |,sys.sw.apo,cp;cs;dx;yc,Auto Power Off,1,0;1,1,MIDI7,(* 1),(+ 0),@off;on
 |,sys.sw.speaker,cp;cs;dx;yc,Speaker On/Off,1,0;1,1,MIDI7,(* 1),(+ 0),@off;on

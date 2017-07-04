@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -226,40 +226,13 @@ class Table(object):
 
 # pylint: disable=too-few-public-methods
 
-class VendorTable(Table):
+## Table Subclasses, alphabetically
+##
+
+class CTRLTable(Table):
     ''' Table
     '''
-    def __init__(self, mod, name, over, meta=None):
-        meta = TableMetaData([
-            [ 'Ident',        '*ident' ],
-            [ 'Company Name', 'name'   ],
-            [ 'MMA SYSEX ID', 'mma_id' ]
-        ])
-        super().__init__(mod, name, over, meta)
-        for row in self._rows:
-            if row.mma_id()[0] == 0x00:
-                setattr(row, '_idlen', 1)
-            else:
-                setattr(row, '_idlen', 3)
-
-    def mma_lookup(self, data):
-        ''' return the row matching the first 1 or 3 bytes in
-              the data stream
-        '''
-        idlen = 1 if data[0] == 0x00 else 3
-        row = self.get1row(data[0:idlen], rqrow=None, colid='mma_id')
-        self.eat_id(data, idlen)
-        return row
-
-    def eat_id(self, data, idlen=None):
-        ''' consume the ID from the data buffer
-        '''
-        # pylint: disable=no-self-use
-        #  SCOPE
-        if idlen is None:
-            idlen = 1 if data[0] == 0x00 else 3
-        del data[0:idlen]
-        return idlen
+    pass
 
 
 class DeviceTable(Table):
@@ -283,22 +256,6 @@ class DeviceTable(Table):
         '''
         return algo.sniff(vendor, self, data)
 
-class KBTable(Table):
-    ''' Table
-    '''
-    pass
-
-class TGTable(Table):
-    ''' Table
-    '''
-    pass
-
-
-class CTRLTable(Table):
-    ''' Table
-    '''
-    pass
-
 
 class DrumTable(Table):
     ''' Table
@@ -306,16 +263,143 @@ class DrumTable(Table):
     pass
 
 
+class FMTable(Table):
+    ''' Provide a description of operator routing for FM algorithms
+    '''
+    def __init__(self, mod, name, over, meta=None):
+        if not meta:
+            meta = TableMetaData([
+                ['Algorithm', '*ident'],
+                ['Operators...', 'ops...']])
+
+        super().__init__(mod, name, over, meta)
+
+    def _flatten(self, ops):
+        ''' convert cells to a simple array
+        '''
+        result = []
+        for oper in ops:
+            operval = oper()
+            if isinstance(operval, Cell):
+                result.append(self._flatten(operval))
+            else:
+                result.append(operval)
+
+        return result
+
+    def _distances(self, nop, oper):
+        ''' for operator nop, return the maximum distance between this
+              operator and operators that it modulates
+        '''
+        dist = set.set()
+        if isinstance(oper, list):
+            for anop in oper:
+                dist.insert(nop - anop)
+        else:
+            dist.insert(nop-oper)
+
+        return dist
+    
+    def pic(self, rowid):
+        ''' render self on stream as text boxes
+        '''
+        
+        #                  11111
+        #        012345678901234
+        box = [[' ┌───────────┐ ' ],
+               [' │           │ ' ],
+               [' │           │ ' ],
+               [' │           │ ' ],
+               [' └───────────┘ ' ] ]
+        # modulator routing:
+        #   mA to mB is 1: arrow to cell at position 11
+        #                  arrow from cell at position 3
+        #                  two rows tall
+        #
+        mod1 = [['┌──────┐'],
+                ['▼      │'],
+                ['       ┴']]
+
+        #   mA to mB is 2: arrow to cell at position 10
+        #                  arrow from cell at position 4
+        #                  up to three rows tall
+        #
+        mod2 = [['┌─────X┐'],   # X: repeat prev char x 14
+                ['│     X│'],
+                ['▼     X│'], 
+                ['      X┴']]
+
+        #   mA to mB is 3: arrow to cell at position 9
+        #                  arrow from cell at position 5
+        #                  up to 4 rows tall
+        #
+        mod3 = [['┌────XX┐'],
+                ['│    XX│'],
+                ['▼    XX│'],
+                ['     XX┴']]
+
+        #   mA to mB is 4: arrow to cell at position 8
+        #                  arrow from cell at position 6
+        #                  up to 5 rows tall
+        #
+        mod4 = [['┌───XXX┐'],
+                ['│   XXX│'],
+                ['▼   XXX│'],
+                ['    XXX┴']]
+
+        #   mA to mB is 5: arrow to cell at position 8
+        #                  arrow from cell at position 6
+        #                  up to 6 rows tall
+        #
+        mod5 = [['┌──XXXX┐'],
+                ['│  XXXX│'],
+                ['▼  XXXX│'],
+                ['   XXXX┴']]
+
+        #   mA to mB is 0: (self modulating)
+        #                  arrow from bottom cell 7
+        #                  arrow to bottom cell 11
+        #                  two rows tall
+        mod0 = [['┬    '],
+                ['│   ▲'],
+                ['└───┘']]
+
+        # Carrier: from bottom cell 5
+        #
+        car = [['┬' ],
+               ['│' ],
+               ['▼' ]]
+
+        mods = [[mod0,  4,  7],
+                [mod1, -2, 11],
+                [mod2, -3, 10],
+                [mod3, -4,  9],
+                [mod4, -5,  8],
+                [mod4, -6,  7],
+                [car,   4,  5],
+                [None,  2,  7]] # op number
+
+        # this is sufficient for up to 6 operators
+        #  FS1r owner can hack in wider boxes and arrows
+        ops = self.get1row(rowid).route
+        ops = self.flatten(ops)
+        raster = []
+        for oper in nops:
+            for row in box:
+                raster[row] += box[row]
+            for row in car:
+                #                    11111
+                #          012345678901234
+                raster += '               '
+                
+        # we now have a row of nops boxes
+        #  how many rows of routing do we need?
+        
+        
 class FXTable(Table):
     ''' Table
     '''
     pass
-
-class SeqTable(Table):
-    ''' Table
-    '''
-    pass
-
 
 class HeaderTable(Table):
     ''' Header inside each device module
@@ -330,6 +414,11 @@ class HeaderTable(Table):
         super().__init__(mod, name, over, meta)
 
 
+class KBTable(Table):
+    ''' Table
+    '''
+    pass
+
 class ProtoTable(Table):
     ''' Device-specific Protocol
           yeah, these are a good candidate for a class decorator
@@ -339,6 +428,19 @@ class ProtoTable(Table):
             [ 'Message Type', '*ident'   ],
             [ 'Message String', ':string' ]])
         super().__init__(self, mod, name, over, meta):
+
+
+class ChoiceTable(Table):
+    ''' Table providing a way to select from groups of paramters
+    '''
+    def __init__(self, mod, name, over):
+        meta = TableMetaData([
+            [ 'Ident',       'ident' ],
+            [ 'Name',        'name'  ],
+            [ 'Midi Value',  'data'  ],
+            [ 'Param Table', 'table' ]])
+
+        super().__init__(mod, name, over, meta)
 
 
 class MemoryMap(Table):
@@ -360,19 +462,6 @@ class MemoryMap(Table):
             [ '-',            None     ],
             [ '-',            None     ],
             [ 'Rendering',    'params' ]])
-
-        super().__init__(mod, name, over, meta)
-
-
-class ChoiceTable(Table):
-    ''' Table providing a way to select from groups of paramters
-    '''
-    def __init__(self, mod, name, over):
-        meta = TableMetaData([
-            [ 'Ident',       'ident' ],
-            [ 'Name',        'name'  ],
-            [ 'Midi Value',  'data'  ],
-            [ 'Param Table', 'table' ]])
 
         super().__init__(mod, name, over, meta)
 
@@ -433,6 +522,18 @@ class ParamTable(Table):
         pass
 
 
+class SeqTable(Table):
+    ''' Table
+    '''
+    pass
+
+
+class TGTable(Table):
+    ''' Table
+    '''
+    pass
+
+
 class ValueTable(Table):
     ''' table that maps MIDI byte values to float values
           used by many vendors in effects parameter translations
@@ -485,23 +586,72 @@ class ValueTable(Table):
         return int(
             round(row.scale() * (value - flast) + dlast, 0))
 
+
+class VendorTable(Table):
+    ''' Table
+    '''
+    def __init__(self, mod, name, over, meta=None):
+        meta = TableMetaData([
+            [ 'Ident',        '*ident' ],
+            [ 'Company Name', 'name'   ],
+            [ 'MMA SYSEX ID', 'mma_id' ]
+        ])
+        super().__init__(mod, name, over, meta)
+        for row in self._rows:
+            if row.mma_id()[0] == 0x00:
+                setattr(row, '_idlen', 1)
+            else:
+                setattr(row, '_idlen', 3)
+
+    def mma_lookup(self, data):
+        ''' return the row matching the first 1 or 3 bytes in
+              the data stream
+        '''
+        idlen = 1 if data[0] == 0x00 else 3
+        row = self.get1row(data[0:idlen], rqrow=None, colid='mma_id')
+        self.eat_id(data, idlen)
+        return row
+
+    def eat_id(self, data, idlen=None):
+        ''' consume the ID from the data buffer
+        '''
+        # pylint: disable=no-self-use
+        #  SCOPE
+        if idlen is None:
+            idlen = 1 if data[0] == 0x00 else 3
+        del data[0:idlen]
+        return idlen
+
+
+
 # pylint: enable=too-few-public-methods
 
 CLASSES = {
-    # master.csv tables
-    'Vendors':     VendorTable,
-    'Devices':     DeviceTable,
-    'Keyboard':    KBTable,
-    'Controller':  CTRLTable,
-    'TG':          TGTable,
-    'Drum':        DrumTable,
-    'Seq':         SeqTable,
+    # vendors.csv tables
+    #   one per system
+    'VendorTable': VendorTable,
 
-    # device module tables
-    'HeaderTable': HeaderTable,
-    'ProtoTable':  ProtoTable,
-    'MemoryMap':   MemoryMap,
+    # <vendor>.devices.csv tables
+    #   one per vendor
+    'DeviceTable': DeviceTable,
+
+    # devtype.csv tables
+    #   one each per system
+    'CTRLTable':  CTRLTable,
+    'DrumTable':  DrumTable,
+    'FXTable':    FXTable,
+    'IOTable':    IOTable,
+    'KBTable':    KBTable,
+    'TGTable':    TGTable,
+    'SeqTable':   SeqTable
+
+    # <device>.csv tables
+    #   as needed per device
     'ChoiceTable': ChoiceTable,
+    'FMTable':     FMTable,
+    'HeaderTable': HeaderTable,
+    'MemoryMap':   MemoryMap,
     'ParamTable':  ParamTable,
+    'ProtoTable':  ProtoTable,
     'ValueTable':  ValueTable
 }
