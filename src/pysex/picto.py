@@ -20,7 +20,7 @@
 ''' picto.py -
       "And now for something completely different..."
            https://www.youtube.com/watch?v=1f-kfRREA8M
-            
+
       classes for doing text diagrams of modulation routing
 '''
 
@@ -28,53 +28,54 @@
 
 import copy
 
-__all__ = ['Picto', 'PictoBox', 'PictoArrow', 'HEAD', 'BASE']
+__all__ = ['Picto', 'PictoBox', 'PictoHArrow', 'HEAD', 'BASE', 'NONE']
 
 HEAD = 'AH'                        # arrow terminus
 BASE = 'BA'                        # arrow terminus
 NONE = 'NO'                        # arrow terminus
 
-# pylint: disable=multiple-statements
-
-# boxes
-ULC = u'┌'; HOR = u'─'; URC = u'┐'
-VER = u'│'; SPC = u' '
-LLC = u'└';             LRC = u'┘'
-
-# arrows
-BDN = u'┬'                      # base down
-ADN = u'▼'                      # arrow down
-AUP = u'▲'                      # arrow up
-BUP = u'┴'                      # base up
-BRI = u'├'                      # base right
-ARI = u'▶'                      # arrow right
-ALE = u'◀'                      # arrow left
-BLE = u'┤'                      # base left
-
-# pylint: enable=multiple-statements
 
 class Picto(object):
     ''' manage a canvas with a picture on it using ascii
           chars or UTF8 drawing characters
     '''
-    def __init__(self, hlen, vlen, blob=None):
-        ''' fourth quadrant coordinates
-        '''
-        if blob:
-            canvas = []
-            for row in blob:
-                canvas.append(list(row))
-            vlen = len(canvas)
-            hlen = max([len(lin) for lin in canvas])
-            if not all([hlen == len(lin) for lin in canvas]):
-                raise ValueError(
-                    'all lines must be the same length')
-        else:
-            canvas = [[' '] * hlen for lin in range(vlen)]
+    # pylint: disable=multiple-statements
 
-        self._can = canvas
-        self.hlen = hlen
-        self.vlen = vlen
+    # box chars
+    ULC = u'┌'; HOR = u'─'; URC = u'┐'
+    VER = u'│'; SPC = u' '
+    LLC = u'└';             LRC = u'┘'
+
+    # arrow chars
+    BDN = u'┬'                      # base down
+    ADN = u'▼'                      # arrow down
+    AUP = u'▲'                      # arrow up
+    BUP = u'┴'                      # base up
+    BRI = u'├'; ARI = u'▶'          # base, arrow right
+    ALE = u'◀'; BLE = u'┤'          # arrow, base left
+    # pylint: enable=multiple-statements
+
+    @classmethod
+    def blank(cls, hlen, vlen):
+        ''' create a blank canvas
+            - hlen: width
+            - vlen: height
+            - return: a new blank canvas
+        '''
+        return cls([[Picto.SPC] * hlen for lin in range(vlen)])
+
+    def __init__(self, blob):
+        ''' ctor: convert blob to self
+            - blob: array of strings
+        '''
+        can = [list(row) for row in blob]
+        self.vlen = len(blob)
+        self.hlen = max([len(lin) for lin in blob])
+        for row in range(len(blob)):
+            short = self.hlen - len(can[row])
+            if short:
+                can[row] += [Picto.SPC] * short
+        self._can = can
 
     def __getitem__(self, index):
         return self._can[index]
@@ -85,47 +86,53 @@ class Picto(object):
     def grow(self, rows=None, cols=None):
         ''' add (before, after), (before, after) cells to a canvas
         '''
+        # add full-width rows first
         if rows:
-            # add rows first
             head, tail = rows
-            newrow = [' '] * self.hlen
+            newrow = [[Picto.SPC] * self.hlen]
+            # before
             for row in range(head):
-                self._can = [newrow] + self._can
+                self._can = newrow + self._can
+            # after
             for row in range(tail):
-                self._can += [newrow]
+                self._can += newrow
             self.vlen += head + tail
 
         if cols:
             head, tail = cols
-            hcols = [' '] * head
-            tcols = [' '] * tail
+            hcols = [Picto.SPC] * head
+            tcols = [Picto.SPC] * tail
             for row in range(self.vlen):
                 self[row] = hcols + self[row] + tcols
             self.hlen += head + tail
 
         return self
 
-    def draw(self, hoff, voff, raster, trans=True):
-        ''' place raster in self at [hoff,voff]
-            - raster: image to add
+    def draw(self, hoff, voff, pic, trans=True):
+        ''' place pic in self at [hoff,voff]
+            - pic:  Picto image to add
             - hoff: horiz offset for upper left corner
             - voff: vert offset for upper left corner
             - trans: transparent: overwrite with only non-space chars
         '''
+        #! at some point, have Picto keep a table of drawn objects
+        #!  and their locations.  Have __str__ do the compositing.
+        #! this will allow 'erase' and 'move'
+
         # optimize?
-        if not trans and hoff == 0 and raster.hlen == self.hlen:
-            for off, row in enumerate(raster):
+        if not trans and hoff == 0 and pic.hlen == self.hlen:
+            for off, row in enumerate(pic):
                 self[off+voff] = copy.copy(row)
             return self
 
-        for row in range(raster.vlen):
+        for row in range(pic.vlen):
             if not trans:
-                self[row][hoff:hoff+raster.hlen] = copy.copy(raster[row])
+                self[row][hoff:hoff+pic.hlen] = copy.copy(pic[row])
                 continue
-            for col in range(raster.hlen):
-                if trans and raster[row][col] == ' ':
+            for col in range(pic.hlen):
+                if trans and pic[row][col] == Picto.SPC:
                     continue
-                self[row+voff][col+hoff] = raster[row][col]
+                self[row+voff][col+hoff] = pic[row][col]
 
         return self
 
@@ -140,16 +147,16 @@ class PictoBox(Picto):
     ''' a box class that can take a label
     '''
     def __init__(self, hlen, vlen):
-        ''' make a box
+        ''' make a hlen * vlen box
         '''
-        lin = HOR * (hlen-2)
-        spc = ' ' * (hlen-2)
+        lin = Picto.HOR * (hlen-2)
+        spc = Picto.SPC * (hlen-2)
 
-        blob = [ULC + lin + URC]
-        blob += (vlen-2) * [(VER + spc + VER)]
-        blob += [LLC + lin + LRC]
+        blob = [Picto.ULC + lin + Picto.URC]
+        blob += (vlen-2) * [(Picto.VER + spc + Picto.VER)]
+        blob += [Picto.LLC + lin + Picto.LRC]
 
-        super().__init__(hlen, vlen, blob)
+        super().__init__(blob)
 
     def label(self, text):
         ''' insert text into box
@@ -158,7 +165,7 @@ class PictoBox(Picto):
         verc = int(self.vlen / 2)
         txtc = int(len(text)/2)
         hpos = horc - txtc
-        return self.draw(verc, hpos, Picto(len(text), 1, [text]))
+        return self.draw(verc, hpos, Picto([text]))
 
 
 class PictoHArrow(Picto):
@@ -172,49 +179,78 @@ class PictoHArrow(Picto):
             - lend: right end in {HEAD, BASE or None}
         '''
         def base(hlen, updn, lend, rend):
-            chars = {
-                'dn': { 'AH': ADN, 'BA': BUP, 'NO': SPC },
-                'up': { 'AH': AUP, 'BA': BDN, 'NO': SPC },
-            }
-            return mid(hlen, chars[updn][lend], SPC, chars[updn][rend])
+            ''' do arrows and bases
+                - hlen: how wide
+                - updn: orientation in {'up', 'dn'}
+                - lend: left end in {HEAD, BASE, NONE}
+                - rend: right end in in {HEAD, BASE, NONE}
+                - return: assembled string
+            '''
+            chars = { 'dn': { 'AH': Picto.ADN,
+                              'BA': Picto.BUP,
+                              'NO': Picto.SPC },
+                      'up': { 'AH': Picto.AUP,
+                              'BA': Picto.BDN,
+                              'NO': Picto.SPC } }
+            return mid(hlen, chars[updn][lend], Picto.SPC, chars[updn][rend])
 
         def mid(hlen, lend, mid, rend):
+            ''' do a middle row
+                - hlen: how wide
+                - lend: left end in {HEAD, BASE, NONE}
+                - mid:  run char, presumably Picto.HOR or Picto.SPC
+                - rend: right end in {HEAD, BASE, NONE}
+                - return: assembled string
+            '''
             return lend + mid * (hlen-2) + rend
 
         def end(leri, xend):
-            chars = {
-                'ri': { 'AH': ARI, 'BA': BLE, 'NO': HOR },
-                'le': { 'AH': ALE, 'BA': BRI, 'NO': HOR }
-            }
+            ''' get end characters for flat arrows
+                - leri: in {'le', 'ri'}
+                - xend: end type in {HEAD, BASE, NONE}
+            '''
+            chars = { 'ri': { 'AH': Picto.ARI,
+                              'BA': Picto.BLE,
+                              'NO': Picto.HOR },
+                      'le': { 'AH': Picto.ALE,
+                              'BA': Picto.BRI,
+                              'NO': Picto.HOR } }
             return chars[leri][xend]
-            
+
         if vlen == 0:
             # direct arrow, orient and add ends
-            blob = [mid(hlen, end('le', lend), HOR, end('ri', rend))]
+            blob = [mid(hlen, end('le', lend), Picto.HOR, end('ri', rend))]
 
         elif vlen < 0:
-            blob  = [ mid(hlen, ULC, HOR, URC)]          # ┌──────┐
-            blob += [ mid(hlen, VER, SPC, VER)           # │      │
-                      for row in range(0, abs(vlen)-1) ] # │      │
-            blob += [base(hlen, 'dn', lend, rend)]       # ▼      ┴
+            # 1: ┌──────┐
+            # 2: │      │
+            # 3: ▼      ┴
+            blob  = [ mid(hlen, Picto.ULC, Picto.HOR, Picto.URC)] # 1
+            blob += [ mid(hlen, Picto.VER, Picto.SPC, Picto.VER)  # 2
+                      for row in range(0, abs(vlen)-1) ]          # 2
+            blob += [base(hlen, 'dn', lend, rend)]                # 3
 
 
         else:
-            blob  = [base(hlen, 'up', lend, rend)] # ┬      ▲
-            blob += [ mid(hlen, VER, SPC, VER)     # │      │
-                      for row in range(0, vlen-1)] # │      │
-            blob += [ mid(hlen, LLC, HOR, LRC)]    # └──────┘
-            
-        super().__init__(hlen, vlen+1, blob)
+            # 1: ┬      ▲
+            # 2: │      │
+            # 3: └──────┘
+            blob  = [base(hlen, 'up', lend, rend)]                # 1
+            blob += [ mid(hlen, Picto.VER, Picto.SPC, Picto.VER)  # 2
+                      for row in range(0, vlen-1)]                # 2
+            blob += [ mid(hlen, Picto.LLC, Picto.HOR, Picto.LRC)] # 3
+
+        super().__init__(blob)
 
 
 class PictoVArrow(Picto):
-    ''' vertical arrows
+    ''' vertical arrows.  not needed yet
     '''
-        
+
 if __name__ == '__main__':
     # pylint: disable=invalid-name
-    box = Picto(15, 5)
+    box = Picto.blank(15, 9)
+    print(box)
     box = box.draw(2, 0, PictoBox(13, 5).label('Operator1'))
     print('Box:\n%s' % box)
 
@@ -239,13 +275,13 @@ if __name__ == '__main__':
     print(PictoHArrow(8, -3, HEAD, NONE))
     print(PictoHArrow(8, -3, NONE, HEAD))
 
-    box = Picto(40, 20)
+    box = Picto.blank(40, 20)
     op1 = PictoBox(13, 5).label('Operator1')
     op2 = PictoBox(13, 5).label('Operator2')
-    
+
     box.draw(5, 8, op1)
     box.draw(20, 8, op2)
     box.draw(13, 7,  PictoHArrow(10, -1, BASE, HEAD))
     box.draw(13, 12, PictoHArrow(10, 1, HEAD, BASE))
     print(box)
-    
+
