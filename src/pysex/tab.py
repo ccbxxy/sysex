@@ -26,9 +26,9 @@
 
 import copy
 from pysex import algo
-from pysex.mod import ModEndException
 from pysex.row import Row
-from pysex.sysex import SysexLookupError
+from pysex.cell import Cell
+from pysex.sysex import SysexLookupError, ModEndException
 
 __all__ = ['Table', 'CLASSES']
 
@@ -192,8 +192,7 @@ class Table(object):
 
         rows = []
         for row in self._rows:
-            if (getattr(row, colid)() == rowid and
-                row.engine_match(rqrow)):
+            if getattr(row, colid)() == rowid and row.in_engine(rqrow):
                 if first:
                     return row
                 else:
@@ -291,111 +290,21 @@ class FMTable(Table):
         ''' for operator nop, return the maximum distance between this
               operator and operators that it modulates
         '''
-        dist = set.set()
+        # pylint: disable=no-self-use
+        dist = set()
         if isinstance(oper, list):
             for anop in oper:
-                dist.insert(nop - anop)
+                dist.add(nop - anop)
         else:
-            dist.insert(nop-oper)
+            dist.add(nop-oper)
 
         return dist
-    
+
     def pic(self, rowid):
-        ''' render self on stream as text boxes
+        ''' render as a string
         '''
-        
-        #                  11111
-        #        012345678901234
-        box = [[' ┌───────────┐ ' ],
-               [' │           │ ' ],
-               [' │           │ ' ],
-               [' │           │ ' ],
-               [' └───────────┘ ' ] ]
-        # modulator routing:
-        #   mA to mB is 1: arrow to cell at position 11
-        #                  arrow from cell at position 3
-        #                  two rows tall
-        #
-        mod1 = [['┌──────┐'],
-                ['▼      │'],
-                ['       ┴']]
 
-        #   mA to mB is 2: arrow to cell at position 10
-        #                  arrow from cell at position 4
-        #                  up to three rows tall
-        #
-        mod2 = [['┌─────X┐'],   # X: repeat prev char x 14
-                ['│     X│'],
-                ['▼     X│'], 
-                ['      X┴']]
 
-        #   mA to mB is 3: arrow to cell at position 9
-        #                  arrow from cell at position 5
-        #                  up to 4 rows tall
-        #
-        mod3 = [['┌────XX┐'],
-                ['│    XX│'],
-                ['▼    XX│'],
-                ['     XX┴']]
-
-        #   mA to mB is 4: arrow to cell at position 8
-        #                  arrow from cell at position 6
-        #                  up to 5 rows tall
-        #
-        mod4 = [['┌───XXX┐'],
-                ['│   XXX│'],
-                ['▼   XXX│'],
-                ['    XXX┴']]
-
-        #   mA to mB is 5: arrow to cell at position 8
-        #                  arrow from cell at position 6
-        #                  up to 6 rows tall
-        #
-        mod5 = [['┌──XXXX┐'],
-                ['│  XXXX│'],
-                ['▼  XXXX│'],
-                ['   XXXX┴']]
-
-        #   mA to mB is 0: (self modulating)
-        #                  arrow from bottom cell 7
-        #                  arrow to bottom cell 11
-        #                  two rows tall
-        mod0 = [['┬    '],
-                ['│   ▲'],
-                ['└───┘']]
-
-        # Carrier: from bottom cell 5
-        #
-        car = [['┬' ],
-               ['│' ],
-               ['▼' ]]
-
-        mods = [[mod0,  4,  7],
-                [mod1, -2, 11],
-                [mod2, -3, 10],
-                [mod3, -4,  9],
-                [mod4, -5,  8],
-                [mod4, -6,  7],
-                [car,   4,  5],
-                [None,  2,  7]] # op number
-
-        # this is sufficient for up to 6 operators
-        #  FS1r owner can hack in wider boxes and arrows
-        ops = self.get1row(rowid).route
-        ops = self.flatten(ops)
-        raster = []
-        for oper in nops:
-            for row in box:
-                raster[row] += box[row]
-            for row in car:
-                #                    11111
-                #          012345678901234
-                raster += '               '
-                
-        # we now have a row of nops boxes
-        #  how many rows of routing do we need?
-        
-        
 class FXTable(Table):
     ''' Table
     '''
@@ -414,6 +323,12 @@ class HeaderTable(Table):
         super().__init__(mod, name, over, meta)
 
 
+class IOTable(Table):
+    ''' represent MIDI computer IO and MIDI routing devices
+    '''
+    pass
+
+
 class KBTable(Table):
     ''' Table
     '''
@@ -425,9 +340,9 @@ class ProtoTable(Table):
     '''
     def __init__(self, mod, name, over, meta=None):
         meta = TableMetaData([
-            [ 'Message Type', '*ident'   ],
+            [ 'Message Type', '*ident'    ],
             [ 'Message String', ':string' ]])
-        super().__init__(self, mod, name, over, meta):
+        super().__init__(self, mod, name, over, meta)
 
 
 class ChoiceTable(Table):
@@ -643,7 +558,7 @@ CLASSES = {
     'IOTable':    IOTable,
     'KBTable':    KBTable,
     'TGTable':    TGTable,
-    'SeqTable':   SeqTable
+    'SeqTable':   SeqTable,
 
     # <device>.csv tables
     #   as needed per device

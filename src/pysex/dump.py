@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -75,13 +75,16 @@ def load(fpath):
     ''' convert a dump into pile of tables
         - fpath: path to dump file
     '''
-    master = sysex.mod[sysex.MASTER]
+    # pylint: disable=unused-variable
+    #! under construction
+    master = sysex.modref(sysex.MASTER)
     with packets(fpath) as dumpdata:
         device = None
         for data in dumpdata:
             if not device:
                 # assumes all sysex packets in the file are from
                 #  the same device
-                device = Device.lookup(data)
+                # device = Device.lookup(data)
+                pass
 
-            device.load(data)
+            #device.load(data)

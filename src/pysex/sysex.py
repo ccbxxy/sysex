@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -22,11 +22,31 @@
     sysex.py - provide a top-level namespace to avoid circular deps
 """
 
-__all__ = ['modref', 'MASTER', 'SysexLookupException']
+__all__ = [
+    'modref', 'modreg',
+    'MASTER',
+    'ModEndException',
+    'SysexLookupError'
+]
 
 # this maps names of Mods to corresponding instances
 _MODS = {}
 MASTER = 'master'
+
+class ModEndException(Exception):
+    ''' gratuitous specialization
+    '''
+    pass
+
+
+class SysexLookupError(Exception):
+    ''' thrown when a lookup fails
+    '''
+    def __init__(self, objtype, name, problem, params=()):
+        message = '%s %s: %s: %s' % (
+            objtype, name, problem, params)
+        super().__init__(message)
+
 
 def modref(name):
     ''' return module by name
@@ -41,10 +61,10 @@ def modref(name):
             'function', 'Sysex.modref',
             'module not found', (name)) from exc
 
-class SysexLookupError(Exception):
-    ''' thrown when a lookup fails
+
+def modreg(name, ref):
+    ''' register a module
+        - name: module name
+        - ref:  module object
     '''
-    def __init__(self, objtype, name, problem, params=()):
-        message = '%s %s: %s: %s' % (
-            objtype, name, problem, params)
-        super().__init__(message)
+    _MODS[name] = ref

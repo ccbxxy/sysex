@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -28,15 +28,10 @@ import csv
 import os
 import copy
 from pysex import sysex
-from pysex import table
+from pysex import tab
 from pysex.cell import Cell
 
-__all__ = ['Mod', 'ModEndException']
-
-class ModEndException(Exception):
-    ''' gratuitous specialization
-    '''
-    pass
+__all__ = ['Mod']
 
 class Mod(object):
     ''' Internal respresentation of a sysex CSV module
@@ -65,7 +60,7 @@ class Mod(object):
         self.tabs = {}
         self._load(fpath)
         self.reader = None
-        sysex.mods[name] = self
+        sysex.modreg(name, self)
 
     def _load(self, fpath):
         with open(fpath, newline='') as csvfile:
@@ -87,10 +82,10 @@ class Mod(object):
                     else:
                         over = None
                 try:
-                    tab = table.CLASSES[_class](self, name, over)
-                except ModEndException:
+                    table = tab.CLASSES[_class](self, name, over)
+                except sysex.ModEndException:
                     return
 
-            self.tabs[tab.name] = tab
-            setattr(self, tab.name, tab)
+            self.tabs[table.name] = tab
+            setattr(self, table.name, tab)
 

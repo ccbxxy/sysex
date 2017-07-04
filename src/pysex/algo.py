@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -112,6 +112,47 @@ class AKAISCIIRender(Render):
         raise ValueError('character not in Akai charset: %s' % chr(midi))
 
 
+def hbbxl_midi(block):
+    ''' convert up to seven bytes of 8 bit data
+          to up to 8 bytes of 7 bit data
+        - data:  array of bytes
+        - bytec: number of data bytes to process
+        - raise: IndexError if count out of range
+        - return: new array of bytes
+        '''
+    bytec = len(block)
+    if 1 > len(block) > 7:
+        raise IndexError('block len %d: out of range' % bytec)
+
+    msb = 0
+    ret = []
+
+    # start from the end so that the high bit of
+    #  data[0] is the rightmost bit
+    while bytec > 0:
+        bytec -= 1
+        bit = (block[bytec] & 0x80) >> 7
+        msb <<= 1
+        msb |= bit
+        ret.insert(0, block[bytec] & 0x7F)
+
+    return msb, ret
+
+def hbbxl_value(hibits, midi):
+    ''' convert up to seven bytes of 7 bit data to 8 bit
+          data using bits from msb
+        - hibits: ms bits of data, x6543210 order
+        - midi:  array of bytes
+    '''
+    ret = []
+    count = len(midi)
+    for i in range(0,count):
+        bit = (hibits & 0x01) << 7
+        ret.append(midi[i] | bit)
+        hibits >>= 1
+
+    return ret
+
 @_renderer
 class HBB1HRender(Render):
     ''' convert midi stream <-> packed stream
@@ -123,8 +164,8 @@ class HBB1HRender(Render):
     def __init__(self):
         super().__init__(0)
 
-    def tomidi(self, val, bytec):
-        ''' val will be a block of bytes
+    def tomidi(self, data, bytec):
+        ''' see class header
         '''
         pass
 
@@ -146,14 +187,20 @@ class HBB8LRender(Render):
         super().__init__(0)
 
     def tomidi(self, val, bytec):
-        ''' val will be a block of bytes
-        '''
-        pass
+        hibits, mbytes = hbbxl_midi(val)
+        mbytes.append(hibits)
+        return mbytes
 
     def tovalue(self, midi):
-        ''' midi will be a block of bytes
+        ''' convert up to seven bytes of 7 bit data to 8 bit
+              data using bits from msb
+              - midi:  array of bytes
         '''
-        pass
+        if 2 > len(midi) > 8:
+            raise IndexError(
+                'midi packet len %d: must be 2 < len < 8' % len(midi))
+
+        return hbbxl_value(midi[0], midi[1:])
 
 
 @_renderer
@@ -233,7 +280,7 @@ def _sniffer(fun):
 def _byte2sniffer(dev, data):
     return dev.getrows(
         data[1], rqrow=None, colid='proto_id', first=True)
-    
+
 @_sniffer
 def akai(dev, data):
     ''' true if data stream looks like Akai data
@@ -349,10 +396,8 @@ def yamaha(dev, data):
     #  highest up on the table.  ie. all of the XG synths will
     #  dump as 0x4C, so for reading purposes, the master XG
     #  map is all we need
-    return _byte2sniffer(dev, data):
-    
-    
-    
+    return _byte2sniffer(dev, data)
+
 
 def sniff(vendor, dev, data):
     ''' public interface: true if vendor sniffer is true

@@ -48,7 +48,7 @@ class Row(object):
             if colid.startswith('-'):
                 # allow horizontal padding
                 continue
-            
+
             cloc['cell'] = nth+1
             if colid.endswith('...'):
                 # syntactic sugar.
@@ -63,7 +63,7 @@ class Row(object):
                     subcells.append(Cell(scloc, self, col))
                 self.put(colid, Cell(cloc, self, subcells))
                 break
-                
+
             self.put(colid, Cell(cloc, self, data[nth]))
 
         if tab.key:
@@ -96,7 +96,7 @@ class Row(object):
         setattr(self, colid, acell)
         return acell
 
-    def engine_match(self, rqrow):
+    def in_engine(self, rqrow):
         ''' true if rqrow is in the engine field
         '''
         # pylint: disable=no-member

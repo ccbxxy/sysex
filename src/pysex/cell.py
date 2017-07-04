@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -322,7 +322,7 @@ class SubstCell(Cell):
         '''
         raise NotImplementedError
 
-    def value(self, arg=None):
+    def __call__(self, arg=None):
         ''' evaluate. self._value is always an array of at least 2 items
               pass values pairwise to self.method and accumulate results
             - tab: context provider
@@ -373,7 +373,7 @@ class HexCell(SubstCell):
     def method(self, left, right):
         return left.append(right)
 
-    def value(self, arg=None):
+    def __call__(self, arg=None):
         # expand all substitutions
         val = super().__call__(arg)
 
@@ -395,8 +395,8 @@ class MatchCell(SubstCell):
 
     def method(self, left, right):
         return left.append(right)
-    
-    def __call__(self, data):
+
+    def __call__(self, data=None):
         ''' evaluate a cell that picks values out of data
         '''
         result = {}
@@ -422,8 +422,8 @@ class MatchCell(SubstCell):
 
         del data[0:bytec]
         return result
-        
-        
+
+
 class MulCell(SubstCell):
     ''' implement (* v v ...)
     '''
@@ -505,7 +505,7 @@ class ShiftCell(SubstCell):
         # pylint: disable=no-self-use
         return right >> left
 
-    def value(self, right=None):
+    def __call__(self, right=None):
         # not using super()(right) because pylint doesn't get it
         vals = super().__call__(right)
         if len(vals) == 2:
@@ -574,7 +574,7 @@ class VarCell(SubstCell):
                 rowid = 'ident'
         elif rowid == '*':
             rowid = self._row.key
-            
+
         return tab.getrow(rowid, self._row)
 
     def _tabx(self, params):
@@ -586,7 +586,7 @@ class VarCell(SubstCell):
 
     def _modx(self, params):
         # pylint: disable=no-self-use
-        return sysex.mods[params[0]]
+        return sysex.modref(params[0])
 
     def __call__(self, arg=None):
         return self._lookup(super().__call__(arg))
