@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -17,16 +17,15 @@
 #   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #   USA
 
-
-'''
-    showdump.py master.csv device dump.syx
-       render dump context as tables on stdout
+''' modcheck.py
+      read a module, print it's info
 '''
 
-#import sys
-#from pysex import mod
+import sys
+from pysex import mod
 
 if __name__ == '__main__':
     # pylint: disable=invalid-name
-    #  manana....
-    pass
+
+    modref = mod.Mod(sys.argv[1])
+    print(modref)

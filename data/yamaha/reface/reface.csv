@@ -4,19 +4,19 @@
 ]System,MemoryMap,None,,,# shared for all reface,,,,,
 ]],Key,,,instances,Instance Width,MMap,,,,Param Descriptor
 *,*ident,addr,name,count,stride,map,---,---,---,values
-|,sys.tx.chan,(#00 00 00),MIDI Transmit Channel,1,1,,,,,(@Params *)
-|,sys.rx.chan,(#00 00 01),MIDI Receive Channel,1,1,,,,,(@Params *)
-|,sys.tune,(#00 00 02),Master Tune,1,1,,,,,(@Params *)
-|,sys.sw.local_ctrl,(#00 00 06),Local Control,1,1,,,,,(@Params *)
-|,sys.transpose,(#00 00 07),Master Transpose,1,1,,,,,(@Params *)
-|,sys.tempo,(#00 00 08),Tempo,1,1,,,,,(@Params *)
-|,sys.lcd.contrast,(#00 00 0A),LCD Contrast,1,1,,,,,(@Params *)
-|,sys.sw.ped.0.type,(#00 00 0B),Sus Pedal Type,1,1,,,,,(@Params *)
-|,sys.sw.apo,(#00 00 0C),Auto Power Off,1,1,,,,,(@Params *)
-|,sys.sw.speaker,(#00 00 0D),Speaker On/Off,1,1,,,,,(@Params *)
-|,sys.sw.midi_ctrl,(#00 00 0E),Midi Control On/Off,1,1,,,,,(@Params *)
-|,sys.pb.range,(#00 00 0F),Pitch Bend Range,1,1,,,,,(@Params *)
-|,sys.sw.ped.0.func,(#00 00 14),Foot Volume/Sustain,1,1,,,,,(@Params *)
+|,sys.tx.chan,(#00 00 00),MIDI Transmit Channel,1,1,None,,,,(@Params *)
+|,sys.rx.chan,(#00 00 01),MIDI Receive Channel,1,1,None,,,,(@Params *)
+|,sys.tune,(#00 00 02),Master Tune,1,1,None,,,,(@Params *)
+|,sys.sw.local_ctrl,(#00 00 06),Local Control,1,1,None,,,,(@Params *)
+|,sys.transpose,(#00 00 07),Master Transpose,1,1,None,,,,(@Params *)
+|,sys.tempo,(#00 00 08),Tempo,1,1,None,,,,(@Params *)
+|,sys.lcd.contrast,(#00 00 0A),LCD Contrast,1,1,None,,,,(@Params *)
+|,sys.sw.ped.0.type,(#00 00 0B),Sus Pedal Type,1,1,None,,,,(@Params *)
+|,sys.sw.apo,(#00 00 0C),Auto Power Off,1,1,None,,,,(@Params *)
+|,sys.sw.speaker,(#00 00 0D),Speaker On/Off,1,1,None,,,,(@Params *)
+|,sys.sw.midi_ctrl,(#00 00 0E),Midi Control On/Off,1,1,None,,,,(@Params *)
+|,sys.pb.range,(#00 00 0F),Pitch Bend Range,1,1,None,,,,(@Params *)
+|,sys.sw.ped.0.func,(#00 00 14),Foot Volume/Sustain,1,1,None,,,,(@Params *)
 ,,,,,,,,,,
 ,,,,,,,,,,
 ,,,,,,,,,,

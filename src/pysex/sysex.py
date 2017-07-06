@@ -25,7 +25,7 @@
 __all__ = [
     'modref', 'modreg',
     'MASTER',
-    'ModEndException',
+    'ModEndError',
     'SysexLookupError'
 ]
 
@@ -33,7 +33,13 @@ __all__ = [
 _MODS = {}
 MASTER = 'master'
 
-class ModEndException(Exception):
+class ModEndError(Exception):
+    ''' gratuitous specialization
+    '''
+    pass
+
+
+class TableMetadataError(Exception):
     ''' gratuitous specialization
     '''
     pass

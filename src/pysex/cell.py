@@ -103,12 +103,7 @@ class CellIterator(object):
             else:
                 return '%'
 
-        if nextc == ':':
-            # sugar for run-time bindings
-            self.advance(1)
-            return '_' + self.__next__()
-
-        mat = re.match(r"[^:)\s]+", self._buf)
+        mat = re.match(r"[^)\s]+", self._buf)
         if mat is None:
             raise StopIteration
 
@@ -140,7 +135,7 @@ class Cell(object):
         for nth, part in enumerate(parts):
             sloc = copy.copy(loc)
             sloc['arg'] = nth
-            cells.append(Cell(sloc, row, part))
+            cells.append(Cell.factory(sloc, row, part))
         return Cell(loc, row, cells)
 
     @classmethod
@@ -197,28 +192,31 @@ class Cell(object):
             self._value = buf
 
     def __str__(self):
-        result = '( loc: %s, value: ' % self._loc
         if isinstance(self._value, list):
-            for val in self._value:
-                result += '\n  %s' % val
+            return '[' + ', '.join(['%s' % sub for sub in self._value]) + ']'
         else:
-            result += '%s' % self._value
-
-        return result + ')'
+            return '%s' % self._value
 
     def __call__(self, arg=None):
         ''' default evaluator
             - rqrow:
             - return: current value of _value
         '''
-        if isinstance(self._value, list):
+        val = self._value
+        if isinstance(val, list):
             # items in lists are always cells
-            return [val(arg) for val in self._value]
-        elif isinstance(self._value, Cell):
-            return self._value(arg)
+            return [sval(arg) for sval in val]
+        elif isinstance(val, Cell):
+            return val(arg)
+        elif isinstance(val, str):
+            # pylint: disable=no-member
+            if val.startswith(':'):
+                return arg[val[1:]]
+            else:
+                return val
         else:
             # literal
-            return self._value
+            return val
 
 
 class RangeCell(Cell):
@@ -343,7 +341,7 @@ class AddCell(SubstCell):
     ''' implement (+ v v ...) substitution
     '''
     def __init__(self, loc, row, citer):
-        super().__init__(loc, row, citer, number=True)
+        super().__init__(loc, row, citer)
         self._seed = 0
 
     def method(self, left, right):
@@ -522,7 +520,7 @@ class SubCell(SubstCell):
     ''' implement (- v v ...)
     '''
     def __init__(self, loc, row, citer):
-        super().__init__(loc, row, citer, number=True)
+        super().__init__(loc, row, citer)
         self._seed = 0
 
     def method(self, left, right):
@@ -530,7 +528,11 @@ class SubCell(SubstCell):
 
 
 class VarCell(SubstCell):
-    ''' class for (]TableName)
+    ''' class for (!..), (]...) (@...) and (...) constructs
+        !: module reference
+        ]: table reference, optional module qualifier
+        @: row reference, optional table qualifer
+        :  (no sigil) cell reference, optional row qualifier
     '''
     def __init__(self, row, loc, citer):
         nextc = citer.peek()
@@ -573,7 +575,7 @@ class VarCell(SubstCell):
             else:
                 rowid = 'ident'
         elif rowid == '*':
-            rowid = self._row.key
+            rowid = self._row.tab.keyid
 
         return tab.getrow(rowid, self._row)
 

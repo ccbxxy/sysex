@@ -1,5 +1,8 @@
-# device info,,,,,
-]Devices,DeviceInfo,,,,
+# Yamaha Device Table,,,,,
+# see Copyright,,,,,
+,,,,,
+,,,,,
+]Devices,DeviceTable,None,,,
 ]],Model Name,Module,IDRQ Response,ID for protocol,Device Type
 *,*ident,mod,id_response,proto_id,type
 |,AN1x,,(#00 41 1A 02),,syn;kb
@@ -84,10 +87,10 @@
 |,SY77,,,,
 |,SY85,,,,
 |,SY99,,,,
-|,refaceCP,reface.CP,(#00 41 52 06),,piano;kb
-|,refaceCS,reface.CS,(#00 41 51 06),,syn;kb
-|,refaceDX,reface.DX,(#00 41 53 06),,syn;kb
-|,refaceYC,reface.YC,(#00 41 54 06),,syn;kb
+|,refaceCP,reface.CP,(#00 41 52 06),,kb;tg
+|,refaceCS,reface.CS,(#00 41 51 06),,kb;tg
+|,refaceDX,reface.DX,(#00 41 53 06),,kb;rg
+|,refaceYC,reface.YC,(#00 41 54 06),,kb;tg
 |,TG7,dx.TG7,,,
 |,TG33,,,,
 |,TG500,,,,

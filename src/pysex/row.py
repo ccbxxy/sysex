@@ -44,30 +44,31 @@ class Row(object):
         self._keyed = nope
 
         cloc = copy.copy(self.loc)
-        for nth, colid in tab.colids:
-            if colid.startswith('-'):
+        for nth, colid in enumerate(tab.meta.cols):
+            if colid == '_PAD':
                 # allow horizontal padding
+                self.put(colid, ' ')
                 continue
 
-            cloc['cell'] = nth+1
-            if colid.endswith('...'):
+            cloc['col'] = nth+1
+            if colid == self.tab.elipse:
                 # syntactic sugar.
                 #   convert remaining cols to a 'x;y;z;t' cell
-                colid = colid[0:-3]
                 subcells = []
                 scloc = copy.copy(cloc)
                 for ith, col in enumerate(data[nth:]):
                     if not col:
-                        break
+                        # allow empty cells in elipical strings
+                        continue
                     scloc['arg'] = ith
-                    subcells.append(Cell(scloc, self, col))
+                    subcells.append(Cell.factory(scloc, self, col))
                 self.put(colid, Cell(cloc, self, subcells))
                 break
 
-            self.put(colid, Cell(cloc, self, data[nth]))
+            self.put(colid, Cell.factory(cloc, self, data[nth]))
 
-        if tab.key:
-            self._keyed = self.get(tab.key)
+        if tab.keyid:
+            self._keyed = self.get(tab.keyid)
 
     @property
     def key(self):
@@ -107,3 +108,10 @@ class Row(object):
 
         rqe = rqrow.split('.')[0]
         return rqe in self.engine()
+
+    def __str__(self):
+        result = ''
+        for colid in self.tab.meta.cols:
+            if colid != '_PAD':
+                result += '| %s ' % self.get(colid)
+        return result

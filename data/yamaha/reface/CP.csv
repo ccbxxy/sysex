@@ -1,87 +1,84 @@
 # yamaha,reface,,,,,,,,,
 ,,,,,,,,,,
-]Maniphest,ManiphestTable,,,,,,,,,
-*,*device,chan,F0proto,F0layout,CCproto,RPNproto,NRPNproto,,,
-|,refaceCP,0,(]Proto),(]Layout),(]CC),{]RPN),(]NRPN),,,
+]TOC,TOCTable,None,,,,,,,,
+*,*device,chan,proto,addrs,cc,rpm,nrpn,,,
+|,refaceCP,0,(]Proto),(]Layout),(]CC),(]RPN),(]NRPN),,,
+,,,,,,,,,,
+,,,,,,,,,,
+]kb,KBTable,None,,,,,,,,
+*,keys,wheels,levers,faders,dials,switches,pedals,,,
+|,(@keys *),None,None,None,9,3,sus,,,
+,,,,,,,,,,
+]keys,KeyTable,None,,,,,,,,
+*,*device,number,type,action,velocity,vel curves,at,at curves,zones,layers
+|,reface.CP,37,mini,synth,yes,None,None,None,1,1
+,,,,,,,,,,
+,,,,,,,,,,
+]dial,CTRLTable,None,,,,,,,,
+*,*device,ident,name,xmit,values,,,,,
+,,,,,,,,,,
+]switch,CTRLTable,None,,,,,,,,
+*,*device,ident,name,xmit,values,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+]tg,TGTable,None,,,,,,,,
+*,type,voices,oscillators,envelopes,LFOs,effects,,,,
+|,rom,6,1,0,0,(]effect),,,,
+,,,,,,,,,,
+]effect,FXTable,,,,,,,,,
+*,,,,,,,,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
-]Proto,ProtocolTable,None,,,,,,,,
+]Proto,ProtoTable,None,,,,,,,,
 *,op,string...,,,,,,,,
-|,rq.bulk,(& (#20) (:chan)),(#7F 1C),,(#04),(:addr),,,,
+|,rq.bulk,(& (#20) (:chan)),(#7F 1C),,(#04),(#00 00 00),,,,
+|,rq.bulk.rg,(& (#20) (:chan)),(#7F 1C),,(#04),(#0E 0F 00),,,,
 |,send.bulk,(& (#10) (:chan)),(#7F 1C),(+ 3 bytec),(#04),(:addr),(:data),(:csum),,
-|,recv.bulk,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),(= 2 bytec),(= 1 model),(=3 addr),(= (- :bytec 3) data),(=1 csum),,
+|,recv.bulk,(= 1 (= 1 (#10) (>> 4 (&(#F0)))) (=1 chan (&(#0F)))),(#7F 1C),(= 2 bytec),(= 1 model),(=3 addr),(= (- :bytec 3) data),(=1 csum),,
 |,rq.param,(& (#30) (:chan)),(#7F 1C),,(#04),(:addr),,,,
 |,send.param,(& (#10) (:chan)),(#7F 1C),,(#04),(:addr),(:data),,,
-|,recv.param,(= 1 (= 1 (#10) (>> 4 (&F0))) (=1 chan (&0F))),(#7F 1C),,(= 1 model),(=3 addr),(= 0 data),,,
+|,recv.param,(= 1 (= 1 (#10) (>> 4 (&(#F0)))) (=1 chan (&(#0F)))),(#7F 1C),,(= 1 model),(=3 addr),(= 0 data),,,
 ,,,,,,,,,,
 ]Layout,MemoryMap,None,,,,,,,,
-*,*ident,name,*addr,count,stride,submap,params,,,
-,cp.sys,refaceCP System,(#00 00 00),1,0,(]reface SystemLayout),None,,,
-,cp.part,reface CP Part,(#30 00 00),1,0,(]PartLayout),None,,,
-,cp.bulk,reface CP Bulk Voice,(#0E 0F 00),1,0,None,None,,,
+*,*ident,addr,name,count,stride,submap,params,,,
+|,cp.sys,(#00 00 00),refaceCP System,1,0,(]reface SystemLayout),None,,,
+|,cp.part,(#30 00 00),reface CP Part,1,0,(]Part),None,,,
+|,cp.bulk,(#0E 0F 00),reface CP Bulk Voice,1,0,None,None,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
+]Part,MemoryMap,None,,,,,,,,
+*,*ident,addr,name,count,stride,submap,params,,,
+#,Base:,(#30 00 00),,,,,,,,
+|,part.volume,(#00),Volume,1,1,None,(@Params @),,,
+|,part.01,(#01),RESERVED,1,1,None,None,,,
+|,part.drive,(#02),Drive,1,1,None,(@Params @),,,
+|,part.wave,(#03),Wave  Type,1,1,None,(@Params @),,,
+|,part.fx.1.type,(#04),Effect 1 Type (Trem/Wah),1,1,None,(@Params @),,,
+|,part.fx.1.depth,(#05),Effect 1 Depth,1,1,None,(@Params @),,,
+|,part.fx.1.rate,(#06),Effect 1 Rate,1,1,None,(@Params @),,,
+|,part.fx.2.type,(#07),Effect 2 Type (Cho/Pha),1,1,None,(@Params @),,,
+|,part.fx.2.depth,(#08),Effect 2 Depth,1,1,None,(@Params @),,,
+|,part.fx.2.speed,(#09),Effect 2 Speed,1,1,None,(@Params @),,,
+|,part.fx.3.type,(#0A),Effect 3 Type (d.dly/a.dly),1,1,None,(@Params @),,,
+|,part.fx.3.depth,(#0B),Effect 3 Depth,1,1,None,(@Params @),,,
+|,part.fx.3.time,(#0C),Effect 3 Time,1,1,None,(@Params @),,,
+|,part.rev.depth,(#0D),Reverb Depth,1,1,None,(@Params @),,,
+|,part.0E,(#0E),RESERVED,2,1,None,None,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
-,,,,,,,,,,
-]refaceCP,,,,,,,,,,
-*,id,offset,bytec,engine,name,range,render,scale,shift,units
-#,,[30 00 00],,,,,,,,
-,,,,,,,,,,
-]refaceCS,,,,,,,,,,
-*,id,offset,bytec,engine,name,range,render,scale,shift,units
-#,,[30 00 00],,,,,,,,
-,part.volume,00h,1,cs,Volume,0..127,MIDI7,1,0,0..127
-,reserved,01h,1,cs,Reserved,None,None,None,None,None
-,part.lfo.assign,02h,1,cs,LFO Assign,0;1;2;3;4,MIDI7,1,0,off;amp;filter;pitch;osc
-,part.lfo.depth,03h,1,cs,LFO Depth,0..127,MIDI7,1,0,0..127
-,part.lfo.speed,04h,1,cs,LFO Speed,0..127,MIDI7,1,0,0..127
-,part.portamento,05h,1,cs,Portamento,0;1..127,MIDI7,1,0,poly;mono_time
-,part.osc.type,06h,1,cs,Oscillator Type,0;1;2;3;4,MIDI7,1,0,multisaw;pulse;osc_sync;ring_mod;FM
-,part.osc.texture,07h,1,cs,Oscillator Texture,0..127,MIDI7,1,0,0..127
-,part.osc.modulation,08h,1,cs,Oscillator Modulation,0..127,MIDI7,1,0,0..127
-,part.filter.0.cutoff,09h,1,cs,Filter Cutoff,0..127,MIDI7,1,0,0..127
-,part.filter.0.resonance,0Ah,1,cs,Filter Resonance,0..127,MIDI7,1,0,0..127
-,part.eg.0.amp_to_filter,0Bh,1,cs,EG Balance,0..127,MIDI7,1,0,AEGmax..FEGmax
-,part.eg.0.attack,0Ch,1,cs,EG Attack,0..127,MIDI7,1,0,0..127
-,part.eg.0.decay,0Dh,1,cs,EG Decay,0..127,MIDI7,1,0,0..127
-,part.eg.0.sustain,0Eh,1,cs,EG Sustain,0..127,MIDI7,1,0,0..127
-,part.eg.0.release,0Fh,1,cs,EG Release,0..127,MIDI7,1,0,0..127
-,part.fx.0.type,10h,1,cs,Effect Type,0;1;2;3;4,MIDI7,1,0,dist;cho;fla;pha;del;off
-,part.fx.0.depth,11h,1,cs,Effect Depth,0..127,MIDI7,1,0,0..127
-,part.fx.0.rate,12h,1,cs,Effect Rate,0..127,MIDI7,1,0,0..127
-,,,,,,,,,,
-,,,,,,,,,,
-]refaceDXPart,,,,,,,,,,
-,id,offset,bytec,engine,name,range,render,scale,shift,units
-#,,[30 00 00],,,,,,,,
-,,,,,,,,,,
-,,,,,,,,,,
-]refaceDXOp,,,,,,,,,,
-,id,offset,bytec,engine,name,range,render,scale,shift,units
-#,,[31 00 00],,,,,,,,
-,,,,,,,,,,
-,,,,,,,,,,
-]refaceYC,,,,,,,,,,
-,id,offset,bytec,engine,name,range,render,scale,shift,units
-#,,[30 00 00],,,,,,,,
-,part.volume,00h,1,yc,Volume,0..127,MIDI7,1,0,0..127
-,part.voice,02h,1,yc,Voice,0..4,MIDI7,1,0,ham;vox;far;ace;yc
-,part.org.draw.1,03h,1,yc,Drawbar 16’,0..6,MIDI7,1,0,0..6
-,part.org.draw.2,04h,1,yc,Drawbar 5 1/3’,0..6,MIDI7,1,0,0..6
-,part.org.draw.3,05h,1,yc,Drawbar 8’,0..6,MIDI7,1,0,0..6
-,part.org.draw.4,06h,1,yc,Drawbar 4’,0..6,MIDI7,1,0,0..6
-,part.org.draw.5,07h,1,yc,Drawbar 2 2/3’,0..6,MIDI7,1,0,0..6
-,part.org.draw.6,08h,1,yc,Drawbar 2’,0..6,MIDI7,1,0,0..6
-,part.org.draw.7,09h,1,yc,Drawbar 1 3/5’,0..6,MIDI7,1,0,0..6
-,part.org.draw.8,0Ah,1,yc,Drawbar 1 1/3’,0..6,MIDI7,1,0,0..6
-,part.org.draw.9,0Bh,1,yc,Drawbar 1’,0..6,MIDI7,1,0,0..6
-,part.org.cv.sw,0Ch,1,yc,Vibrato/Chorus,0;1,MIDI7,1,0,vib;cho
-,part.org.cv.depth,0Dh,1,yc,Vib/Cho Depth,0..4,MIDI7,1,0,0..4
-,part.org.perc.sw,0Eh,1,yc,Percussion On/Off,0;1,MIDI7,1,0,off;on
-,part.org.perc.harm,0Fh,1,yc,Percussion Harmonic,0;1,MIDI7,1,0,2nd;3rd
-,part.org.perc.length,10h,1,yc,Percussion Length,0..4,MIDI7,1,0,0..4
-,part.org.rotary.speed,11h,1,yc,Rotary,0;1;2;3,MIDI7,1,0,off;stop;slow;fast;first
-,part.distortion.level,12h,1,yc,Distortion,0..127,MIDI7,1,0,0..127
-,part.reverb.level,13h,1,yc,Reverb Level,0..127,MIDI7,1,0,0..127
+]Params,ParamTable,None,,,,,,,,
+*,*ident,engine,name,bytec,range,cur,render,scale,shift,units
+|,part.volume,None,Volume,1,0..127,64,MIDI7,(* 1),(+ 0),@0..127
+|,part.wave,None,Wave  Type,1,0;1;2;3;4;5,0,MIDI7,(* 1),(+ 0),Rd1;Rd2;Wr;Clv;Toy;CP
+|,part.drive,None,Drive,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127
+|,part.fx.1.type,None,Effect 1 Type (Trem/Wah),1,0;1;2,0,MIDI7,(* 1),(+ 0),thru;trem;wah
+|,part.fx.1.depth,None,Effect 1 Depth,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127
+|,part.fx.1.rate,None,Effect 1 Rate,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127
+|,part.fx.2.type,None,Effect 2 Type (Cho/Pha),1,0;1;2,0,MIDI7,(* 1),(+ 0),thru;chorus;phaser
+|,part.fx.2.depth,None,Effect 2 Depth,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127
+|,part.fx.2.speed,None,Effect 2 Speed,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127
+|,part.fx.3.type,None,Effect 3 Type (d.dly/a.dly),1,0;1;2,0,MIDI7,(* 1),(+ 0),thru;d.delay;a.delay
+|,part.fx.3.depth,None,Effect 3 Depth,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127
+|,part.fx.3.time,None,Effect 3 Time,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127
+|,part.rev.depth,None,Reverb Depth,1,0..127,0,MIDI7,(* 1),(+ 0),@0..127

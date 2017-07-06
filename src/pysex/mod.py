@@ -18,7 +18,7 @@
 #   USA
 
 
-''' syxmod.py
+''' mod.py
        module (file) processor
 '''
 
@@ -41,6 +41,11 @@ class Mod(object):
         ''' ctor
             - name: dotted path to module
         '''
+        try:
+            path = os.environ['PYSEX_MODS']
+        except KeyError:
+            path = '.'
+
         if name.endswith('.csv'):
             fpath = name
             name = name[0:-4]
@@ -50,12 +55,13 @@ class Mod(object):
             parts = name.split('.')
             fpath = os.sep.join(parts) + '.csv'
 
+        fpath = os.sep.join([path, fpath])
         self._name = name
         self.loc = {
-            'name': name,
-            'row':  0,
-            'cell': 0,
-            'arg':  0
+            'mod': name,
+            'row': 0,
+            'col': 0,
+            'arg': 0
         }
         self.tabs = {}
         self._load(fpath)
@@ -63,29 +69,73 @@ class Mod(object):
         sysex.modreg(name, self)
 
     def _load(self, fpath):
+        ''' load a module by reading its tables
+        '''
         with open(fpath, newline='') as csvfile:
             self.reader = csv.reader(
-                csvfile, fieldnames='', delimiter=',', dialect='unix')
+                csvfile, delimiter=',', dialect='unix')
+            meta = tab.TableMetaData()
             for line in self.reader:
                 self.loc['row'] += 1
 
-                if line[0].startswith[']']:
-                    name = line[0][1:]
-                    _class = line[1]
-                    if line[2]:
+                if line[0].startswith('!END'):
+                    return
+
+                if line[0].startswith('#'):
+                    continue
+
+                if line[0].startswith('|'):
+                    raise sysex.TableMetadataError(
+                        'missing table header at %s' % self.loc)
+
+                if line[0].startswith(']]'):
+                    meta.desc = line[1:]
+                    continue
+
+                if line[0].startswith(']'):
+                    if not line[0][1:]:
+                        raise sysex.TableMetadataError(
+                            'missing table name at %s' % self.loc)
+
+                    if not line[1]:
+                        raise sysex.TableMetadataError(
+                            'missing table class at %s' % self.loc)
+
+                    meta.name = line[0][1:]
+                    meta.cls  = line[1]
+
+                    if line[2] == 'None':
+                        meta.over = None
+                    else:
                         # table says it's an overlay for another.
                         #  capture contents as a Cell to allow
                         #  (]tab) and (!mod tab) expansions
                         cloc = copy.copy(self.loc)
                         cloc['cell'] = 2
-                        over = Cell(cloc, None, line[2])
-                    else:
-                        over = None
-                try:
-                    table = tab.CLASSES[_class](self, name, over)
-                except sysex.ModEndException:
-                    return
+                        meta.over = Cell(cloc, None, line[2])
+                    continue
 
-            self.tabs[table.name] = tab
-            setattr(self, table.name, tab)
+                if line[0].startswith('*'):
+                    if not meta.cls:
+                        raise sysex.TableMetadataError(
+                            'missing table header at %s %s' % (
+                                self.loc, line))
 
+                    meta.cols = line[1:]
+                    cls = meta.cls
+                    table = cls(self, meta)
+                    self.tabs[meta.name] = table
+                    setattr(self, meta.name, tab)
+                    meta = tab.TableMetaData()
+
+    def marshall(self, dev, dump):
+        ''' parse a dump into dev
+        '''
+        # pylint: disable=no-self-use
+        pass
+    
+    def __str__(self):
+        result = 'Mod Name: %s' % self._name
+        for table in self.tabs:
+            result += '\n%s' % self.tabs[table]
+        return result
