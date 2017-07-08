@@ -139,3 +139,11 @@ class Mod(object):
         for table in self.tabs:
             result += '\n%s' % self.tabs[table]
         return result
+
+    def aswiki(self):
+        ''' return a string representing a module in wiki markup
+        '''
+        result = '== %s ==\n' % self._name
+        for table in self.tabs:
+            result += table.aswiki()
+        return result

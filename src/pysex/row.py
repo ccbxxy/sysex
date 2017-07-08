@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #   Copyright (C) 2017 dendrite.sysex@gmail.com
 #
@@ -21,7 +21,6 @@
 ''' row.py - row of cells in our data model
 '''
 
-import copy
 from pysex.cell import Cell
 
 class Row(object):
@@ -43,7 +42,7 @@ class Row(object):
         self.tab = tab
         self._keyed = nope
 
-        cloc = copy.copy(self.loc)
+        cloc = self.loc.copy()
         for nth, colid in enumerate(tab.meta.cols):
             if colid == '_PAD':
                 # allow horizontal padding
@@ -55,7 +54,7 @@ class Row(object):
                 # syntactic sugar.
                 #   convert remaining cols to a 'x;y;z;t' cell
                 subcells = []
-                scloc = copy.copy(cloc)
+                scloc = cloc.copy()
                 for ith, col in enumerate(data[nth:]):
                     if not col:
                         # allow empty cells in elipical strings
@@ -114,4 +113,13 @@ class Row(object):
         for colid in self.tab.meta.cols:
             if colid != '_PAD':
                 result += '| %s ' % self.get(colid)
+        return result
+
+    def aswiki(self):
+        ''' render a row as a row of a mediawiki table
+        '''
+        result = '| |\n'
+        for colid in self.tab.meta.cols:
+            if colid != '_PAD':
+                result += '| | %s\n' % self.get(colid)
         return result

@@ -221,6 +221,21 @@ class Table(object):
 
         return result
 
+    def aswiki(self):
+        ''' render a table as a mediawiki table
+        '''
+        result = '{| class=wikitable width=80%'
+        width = len(self.meta.cols) + 1
+        result += '|-\n! colspan=%s ! %s (%s, %s)\n' % (
+            width, self.meta.name,
+            self.__class__.name, self.meta.over)
+        result += '|-\n! !\n'
+        for colid in self.meta.cols:
+            result += '! ! %s\n' % colid
+        for row in self._rows:
+            result += row.aswiki()
+        result += '|}\n'
+        return result
 
 # pylint: disable=too-few-public-methods
 
@@ -503,7 +518,7 @@ class VendorTable(Table):
     def __init__(self, mod, meta):
         super().__init__(mod, meta)
         for row in self._rows:
-            if row.mma_id()[0] == 0x00:
+            if row.mma_id[0] == 0x00:
                 setattr(row, '_idlen', 1)
             else:
                 setattr(row, '_idlen', 3)

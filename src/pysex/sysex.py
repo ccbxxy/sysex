@@ -45,6 +45,12 @@ class TableMetadataError(Exception):
     pass
 
 
+class CellError(Exception):
+    ''' gratuitous specialization
+    '''
+    pass
+
+
 class SysexLookupError(Exception):
     ''' thrown when a lookup fails
     '''
@@ -65,7 +71,7 @@ def modref(name):
     except KeyError as exc:
         raise SysexLookupError(
             'function', 'Sysex.modref',
-            'module not found', (name)) from exc
+            'module not found', name) from exc
 
 
 def modreg(name, ref):

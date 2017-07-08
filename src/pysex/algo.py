@@ -28,7 +28,7 @@ __all__ = ['tovalue', 'tomidi', 'sniffers', 'sniff']
 
 _RCLASSES = {}
 
-def _renderer(cls):
+def renderer(cls):
     ''' cheap registration decorator
     '''
     _RCLASSES[cls.__name__] = cls
@@ -71,7 +71,7 @@ class Render(object):
         return result
 
 
-@_renderer
+@renderer
 class AKAISCIIRender(Render):
     ''' AKAI Chars <-> 7-bit ASCII
     '''
@@ -153,7 +153,7 @@ def hbbxl_value(hibits, midi):
 
     return ret
 
-@_renderer
+@renderer
 class HBB1HRender(Render):
     ''' convert midi stream <-> packed stream
           7 packed become 7 MIDI with 1 ms byte
@@ -175,7 +175,7 @@ class HBB1HRender(Render):
         pass
 
 
-@_renderer
+@renderer
 class HBB8LRender(Render):
     ''' convert midi stream <-> packed stream
           7 packed become 7 MIDI with 1 ms byte
@@ -203,7 +203,7 @@ class HBB8LRender(Render):
         return hbbxl_value(midi[0], midi[1:])
 
 
-@_renderer
+@renderer
 class NybbleRender(Render):
     ''' convert int <-> string of 0000bbbb bytes
     '''
@@ -213,7 +213,7 @@ class NybbleRender(Render):
 
 
 
-@_renderer
+@renderer
 class MIDI7Render(Render):
     ''' convert int <-> bytes with 0 msb
     '''
@@ -222,7 +222,7 @@ class MIDI7Render(Render):
         super().__init__(7)
 
 
-@_renderer
+@renderer
 class UINT8Render(Render):
     ''' convert int <-> 8-bit bytes
     '''

@@ -26,8 +26,6 @@
 
 # pylint: disable=bad-whitespace
 
-import copy
-
 __all__ = ['Picto', 'PictoBox', 'PictoHArrow', 'HEAD', 'BASE', 'NONE']
 
 HEAD = 'AH'                        # arrow terminus
@@ -122,12 +120,12 @@ class Picto(object):
         # optimize?
         if not trans and hoff == 0 and pic.hlen == self.hlen:
             for off, row in enumerate(pic):
-                self[off+voff] = copy.copy(row)
+                self[off+voff] = row[:] # slice-copy
             return self
 
         for row in range(pic.vlen):
             if not trans:
-                self[row][hoff:hoff+pic.hlen] = copy.copy(pic[row])
+                self[row][hoff:hoff+pic.hlen] = pic[row][:]
                 continue
             for col in range(pic.hlen):
                 if trans and pic[row][col] == Picto.SPC:
