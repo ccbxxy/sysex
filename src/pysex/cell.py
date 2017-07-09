@@ -443,7 +443,6 @@ class OpCell(SubstCell):
                 '%s: attempt to instantiate abstract OpCell', loc)
 
         super().__init__(loc, row, args, **kwargs)
-        self._seed = kwargs['seed']
         self._job = kwargs['job']
         self._sign = kwargs['sign']
 
@@ -454,7 +453,7 @@ class OpCell(SubstCell):
 
         vals = super().__call__(arg, syms)
         # every subclass provides an operation-neutral starter value
-        return functools.reduce(self._job, vals, self._seed)
+        return functools.reduce(self._job, vals[1:], vals[0])
 
     def __str__(self):
         result = '(%s ' % self._sign
@@ -469,7 +468,7 @@ class AddCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='+', seed=0, job=lambda x, y: x + y)
+            sign='+', job=lambda x, y: x + y)
 
 
 class AndCell(OpCell):
@@ -478,7 +477,7 @@ class AndCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='+', seed=0xFFFFFFFF, job=lambda x, y: x & y)
+            sign='+', job=lambda x, y: x & y)
 
 
 class MulCell(OpCell):
@@ -487,7 +486,7 @@ class MulCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='*', seed=1, job=lambda x, y: x * y)
+            sign='*', job=lambda x, y: x * y)
 
 
 class NotCell(OpCell):
@@ -496,8 +495,13 @@ class NotCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='~', seed=0, job=lambda x, y: ~y)
+            sign='~', job=lambda x, y: ~y)
 
+    def __call__(self, arg=None, syms=None):
+        if self[:]:
+            return ~self[0]()
+        else:
+            return ~arg
 
 class OrCell(OpCell):
     ''' implement (| v v ...) substitution
@@ -505,7 +509,7 @@ class OrCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='|', seed=0x00000000, job=lambda x, y: x | y)
+            sign='|', job=lambda x, y: x | y)
 
 
 class PasteCell(OpCell):
@@ -518,12 +522,13 @@ class PasteCell(OpCell):
             ''' do the string pasting, escaping %% and % specials
             '''
             pmap = {'%': ' ', '%%': '%'}
+            right = '%s' % right
             right = pmap[right] if right.startswith('%') else right
             return '%s%s' % (left, right)
 
         super().__init__(
             loc, row, args, number=False,
-            sign='%', seed='', job=paste)
+            sign='%', job=paste)
 
 
 class ShiftLCell(OpCell):
@@ -532,7 +537,7 @@ class ShiftLCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='<<', seed=[], job=lambda x, y: y << x)
+            sign='<<', job=lambda x, y: y << x)
 
 
 class ShiftRCell(OpCell):
@@ -541,7 +546,7 @@ class ShiftRCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='>>', seed=[], job=lambda x, y: y >> x)
+            sign='>>', job=lambda x, y: y >> x)
 
 
 class SubCell(OpCell):
@@ -550,7 +555,7 @@ class SubCell(OpCell):
     def __init__(self, loc, row, args):
         super().__init__(
             loc, row, args,
-            sign='-', seed=0, job=lambda x, y: x - y)
+            sign='-', job=lambda x, y: x - y)
 
 
 ##
@@ -701,7 +706,7 @@ class ModCell(RefCell):
         ''' look up a module
         '''
         # pylint: disable=unused-argument
-        return sysex.modref(self[0])
+        return sysex.modref(self[0]())
 
 
 class TabCell(RefCell):
@@ -712,11 +717,11 @@ class TabCell(RefCell):
         ''' look up a table by name, resolving module if needed
         '''
         if len(names) > 1:
-            mod = sysex.modref(names[0])
+            mod = sysex.modref(names[0]())
         else:
             mod = row.tab.mod
 
-        return mod.tabs[names[1]]
+        return mod.tabs[names[-1]()]
 
     def __init__(self, loc, row, args, **kwargs):
         super().__init__(loc, row, args, **kwargs)
@@ -740,7 +745,7 @@ class RowCell(RefCell):
         else:
             tab = row.tab
 
-        rowid = names[-1]
+        rowid = names[-1]()
 
         # process shorthand references to cells in current row
         if rowid == '@':
@@ -778,7 +783,7 @@ class ColCell(RefCell):
         else:
             row = self._row
 
-        return row.get(self[-1])
+        return row.get(self[-1]())
 
 
 class VarCell(RefCell):
@@ -789,40 +794,82 @@ class VarCell(RefCell):
         self._mark = ':'
 
     def __call__(self, arg=None, syms=None):
-        return syms[self[0][1:]]
+        return syms[self[0]()]
 
 
-def run_test(context, test, value):
+
+##
+## Unit Test
+##
+
+def run_test(tnum, value, arg=None, syms=None):
     ''' call the cell factory and print the results
     '''
-    cell = Cell.factory([0, test, value], None, value)
-    value = cell(context)
-    if isinstance(value, int):
-        print('%s\n: %s (#%X)\n' % (cell, value, 0xFF&value))
+    loc = {
+        'mod': 'units',
+        'tab': 'atab',
+        'row': 1,
+        'col': tnum
+    }
+    class TMod(object):
+        def __init__(self, name):
+            self.name = name
+            self.tabs = {}
+            sysex.modreg(name, self)
+
+        def put(self, tab, name):
+            self.tabs[name] = tab
+            
+    class TTab(object):
+        def __init__(self, name, mod):
+            self.name = name
+            self.mod = TMod(mod)
+            self.rows = {}
+            self.mod.put(self, name)
+            
+        def put(self, row, name):
+            self.rows[name] = row
+
+        def getrow(self, name, rowid):
+            return self.rows[name]
+            
+    class TRow(object):
+        def __init__(self, name):
+            self._cells = {}
+            self.ident = None
+            self.tab = TTab('street', 'town')
+            self.tab.put(self, name)
+            
+        def stuff(self, cells, names):
+            for nth, name in enumerate(names):
+                if not self.ident:
+                    self.ident = name
+                self._cells[name] = cells[nth]
+            self.tab.put(self, self.ident)
+            return self
+
+        def get(self, name):
+            return self._cells[name]
+
+    row = TRow('house')
+    row.stuff(
+        [ Cell.factory(loc, row, '1'),
+          Cell.factory(loc, row, '2'),
+          Cell.factory(loc, row, '3'),
+          Cell.factory(loc, row, '99') ],
+        [ 'a', 'b', 'c', 'mouse' ])
+
+    cell = Cell.factory(loc, row, value)
+    cval = cell(arg, syms)
+    if isinstance(cval, int):
+        print('%s: %s\n: %s (#%02X)\n' % (value, cell, cval, 0xFF&cval))
     else:
-        print('%s\n: %s\n' % (cell, value))
+        print('%s: %s\n: %s\n' % (value, cell, cval))
 
 
 def units():
     ''' run unit tests
     '''
-    class Table(object):
-        ''' provide a context for var substitutions
-        '''
-        def __init__(self):
-            self._syms = {
-                'foo': "banana"
-            }
-
-        def lookup(self, sym, arg):
-            ''' dereference a symbol
-            '''
-            # pylint: disable=unused-argument
-            print('! SYM: %s' % sym)
-            return self._syms[sym[1]]
-
-
-    context = Table()
 
     def test(start):
         ''' generate test numbers
@@ -833,34 +880,49 @@ def units():
             val += 1
 
     tnum = test(0)
+    arg = 5
+    syms = { 'foo': 'Hi Mom!' }
 
-    run_test(context, next(tnum), "hello")
-    run_test(context, next(tnum), "42")
-    run_test(context, next(tnum), "3.14")
-    run_test(context, next(tnum), "hello;goodbye")
-    run_test(context, next(tnum), "1..4")
-    run_test(context, next(tnum), "(#40)..(#60)")
+    cases = [
+        "hello",
+        "42",
+        "3.14",
+        "hello;goodbye",
+        "1..4",
+        "(#40)..(#60)",
+        "1.3..foo",
+        "(#80)",
+        "(#8)",
+        "(#80 7E)",
+        "(+ 10 (#80))",
+        "(& (#C5) (#FF)",
+        "(~ (#80))",
+        "(| (#80) (#0C))",
+        "(% foo %% (+ 3 5))",
+        "(% foo % (+ 3 5))",
+        "(% foo  (+ 3 5))",
+        "(<< 4 1)",
+        "(>> 5 (#80))",
+        "(- 5 (#A))",
+        "(foo)",
+        "(:foo)",
+        "($ mouse)",
+        "(@ house)",
+        "($ house mouse)",
+        "(] street)",
+        "(@ street house)",
+        "($ street house mouse)",
+        "(! town)",
+        "(] town street)",
+        "(@ town street house)",
+        "($ town street house mouse)"
+    ]
 
-    try:
-        run_test(context, next(tnum), "1.3..foo")
-    except ValueError as err:
-        print('! caught expected ValueError:\n!   %s\n' % err)
-
-    run_test(context, next(tnum), "(#80)")
-    run_test(context, next(tnum), "(#8)")
-    run_test(context, next(tnum), "(#80 7E)")
-    run_test(context, next(tnum), "(+ 10 (#80))")
-    run_test(context, next(tnum), "(& (#C5) (#FF)")
-    run_test(context, next(tnum), "(~ (#80))")
-    run_test(context, next(tnum), "(| (#80) (#0C))")
-    run_test(context, next(tnum), "(% foo %% (+ 3 5))")
-    run_test(context, next(tnum), "(% foo % (+ 3 5))")
-    run_test(context, next(tnum), "(% foo  (+ 3 5))")
-    run_test(context, next(tnum), "(<< 4 1)")
-    run_test(context, next(tnum), "(>> 5 (#80))")
-    run_test(context, next(tnum), "(- 5 (#A))")
-    run_test(context, next(tnum), "(foo)")
-
+    for case in cases:
+        try:
+            run_test(next(tnum), case, arg, syms)
+        except ValueError:
+            pass
 
 
 if __name__ == '__main__':
