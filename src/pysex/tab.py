@@ -224,17 +224,26 @@ class Table(object):
     def aswiki(self):
         ''' render a table as a mediawiki table
         '''
-        result = '{| class=wikitable width=80%'
         width = len(self.meta.cols) + 1
-        result += '|-\n! colspan=%s ! %s (%s, %s)\n' % (
-            width, self.meta.name,
-            self.__class__.name, self.meta.over)
-        result += '|-\n! !\n'
+        over = self.meta.over() if self.meta.over else 'None'
+
+        result = '{| class=wikitable width=90%\n'
+        result += '|-\n'
+        result += '! colspan=%s style="text-align:left"' % width
+        result += '| %s\n' % self.meta.name
+        result += "* Class: ''%s''\n" % self.__class__.__name__
+        result += "* Overlays: ''%s''\n" % over
+        result += "* keyid: %s\n" % self.keyid
+        result += "* ident: %s\n" % self.ident
+        result += '|- \n'
+        result += '! |\n'
         for colid in self.meta.cols:
-            result += '! ! %s\n' % colid
+            if colid == '_PAD':
+                continue
+            result += '! style="text-align:left"| %s\n' % colid
         for row in self._rows:
             result += row.aswiki()
-        result += '|}\n'
+        result += '|}\n\n'
         return result
 
 # pylint: disable=too-few-public-methods

@@ -1,7 +1,7 @@
 # vendors.csv,system exclusive database,,,,,,,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
-]Vendor,VendorTable,,,,,,,,,
+]Vendor,VendorTable,None,,,,,,,,
 ]],Alias,Company Name,MMA sysex ID,,,,,,,
 *,*ident,name,mma_id,,,,,,,
 |,akai,Akai,(#47),,,,,,,

@@ -27,6 +27,7 @@
 import csv
 import os
 import copy
+import collections
 from pysex import sysex
 from pysex import tab
 from pysex.cell import Cell
@@ -63,7 +64,7 @@ class Mod(object):
             'col': 0,
             'arg': 0
         }
-        self.tabs = {}
+        self.tabs = collections.OrderedDict()
         self._load(fpath)
         self.reader = None
         sysex.modreg(name, self)
@@ -133,7 +134,7 @@ class Mod(object):
         '''
         # pylint: disable=no-self-use
         pass
-    
+
     def __str__(self):
         result = 'Mod Name: %s' % self._name
         for table in self.tabs:
@@ -143,7 +144,7 @@ class Mod(object):
     def aswiki(self):
         ''' return a string representing a module in wiki markup
         '''
-        result = '== %s ==\n' % self._name
+        result = '== Module: %s ==\n' % self._name
         for table in self.tabs:
-            result += table.aswiki()
+            result += self.tabs[table].aswiki()
         return result

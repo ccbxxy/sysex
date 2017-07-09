@@ -23,8 +23,9 @@
 
     Cell: base class
         for scalars: int, float, string, True, False, None
-      ListCell:
-          for composite values - lists: a;b;..;z and members of subclasses
+      CListCell:
+          compact representation for composite values - lists:
+          a;b;..;z and members of subclasses.
           represented as [Cell(a), Cell(b), ..., Cell(z)]
         RangeCell:
             for things with discrete end points: a..b
@@ -33,11 +34,17 @@
             for '(x a b ... z)' substitutions
             represented as [Cell(a), Cell(b), ..., Cell(z)]
             each operator 'x' is its own subclass
+          ListCell:
+              for composite values - lists: (a b ... z)
+              provided as representation for rows with elipses
+              any cell can also use this external representation
+              it's a SubstCell because of '(...)' parse required
+              represented as [Cell(a), Cell(b), ..., Cell(z)]
           OpCell:
               subclass for {+-&|~*%} substitutions
               inherits representation
-            ...:
-                one subclass for each of {+-&|~*%}
+            AndCell, AddCell, ,,,:
+                one subclass for each of {<>+-&|~*%}
           HexCell:
               subclass for '#' substitutions
               inherits representation
@@ -46,35 +53,45 @@
               inherits represenation
               required a bytearray and a dictionary,
                 evaluates to a byte count
+          ModCell:
+              subclass for (! module) substitutions
+              returns a reference to the named module
+          TabCell:
+              subclass for (] [mod] tab) substitutions
+              returns a reference to the named table
+          RowCell:
+              subclass for (@ [[mod] tab] row) substitutions
+              returns a reference to the named row
+          ColCell:
+              subclass for ($ [[[mod] tab] row] col) substitutions
+              returns a reference to the named cell
           VarCell:
-              subclass for ([!]@:] a b ... z) substitutions
-              (! a): evaluates to a reference to module a
-              (] [a] b): evaluates to a reference to table b in module a
-              (@ [[a] b] c):
-                  evaluates to a reference to row c in table b in module a
-              ([[[a] b] b] d):
-                  evaluates to a reference to cell d, ...
-              (: a): evaluates to the value of a from the current symbol table
+              subclass for (: name) substitutions
+              evaluates to the value of 'name' from the current symbol table
 
     Parsing:
         conversion from external representation to internal representation
         is done by factories.
       Cell.factory():
           top-level parse for each cell
-          detects ListCell (;) and RangeCell (..) syntax, dispatches
+          detects CListCell (;) and RangeCell (..) syntax, dispatches
             constructor which will call Cell.factory() recursively
-          detects top-level SubstCell and returns the result of
-            SubstCell.factory() called with an iterator over the text
+          detects top-level SubstCell and calls SubstCell.factory()
           any other value is a literal (int, str, None, True, False) and
             is returned via the Cell constructor
+          always returns a Cell, a
       SubstCell.factory():
-
-
+          determines substitution type by sniffing the character after '('
+          gathers arguments from input buffer
+          calls recursively to process any args that are substitutions
+          returns the result of dispatching the required subclass constructor
 '''
 
 import re
 import functools
 from pysex import sysex
+
+__all__ = ['Cell', 'ListCell']
 
 # pylint: disable=too-few-public-methods
 #   there is only one public interface to all of these:
@@ -94,7 +111,7 @@ def encast(val, number=False, base=10):
         return float(val)
     except ValueError:
         if number:
-            raise ValueError()
+            raise ValueError(val)
 
     try:
         return {
@@ -108,6 +125,139 @@ def encast(val, number=False, base=10):
         pass
 
     return val
+
+
+class Cell(object):
+    ''' A Cell in our model
+    '''
+    @classmethod
+    def factory(cls, loc, row, buf):
+        ''' arrange to create an instance of Cell or subclass
+            - loc: [f, r, c] location of this cell
+            - buf: current cell or sub-cell contents
+            - raise: ValueError on transitive '..'
+            - return: an instance of a Cell subclass
+        '''
+        buf = buf.lstrip().rstrip()
+
+        if buf.startswith('@'):
+            # forced literal, save
+            return Cell(loc, row, buf[1:])
+
+        if buf.startswith('#'):
+            # comment, no value
+            return Cell(loc, row, None)
+
+        parts = buf.split(';')
+        if len(parts) > 1:
+            # each part is its own cell
+            return CListCell(loc, row, parts)
+
+        parts = buf.split('..')
+        if len(parts) == 2:
+            # range expression
+            return RangeCell(loc, row, parts)
+        elif len(parts) > 2:
+            raise ValueError(
+                '%s: range cell syntax error: %s' % (
+                    loc, buf))
+
+        if buf.startswith('('):
+            # cell is a substitution
+            #  parse to internal represenation
+            return SubstCell.factory(loc, row, buf[1:])
+
+        # literal
+        return Cell(loc, row, buf)
+
+    def __init__(self, loc, row, val, **kwargs):
+        ''' default ctor for all subclasses
+            - loc: [f, r, c, [s]] location of this cell
+            - row: reference to row holding this cell
+            - val: value to store
+        '''
+        # pylint: disable=too-many-arguments
+        self._loc = loc.copy()
+        self._row = row
+        if isinstance(val, str):
+            self._value = encast(val, **kwargs)
+        else:
+            self._value = val
+
+    def __str__(self):
+        return '%s' % self._value
+
+    def __call__(self, arg=None, syms=None):
+        ''' default evaluator
+            - arg=None: optional arg or context dictionary
+            - return: current value of _value
+        '''
+        # Cell is stupid.  Just give them the value
+        return self._value
+
+
+class CListCell(Cell):
+    ''' a cell which is a list of cells, used for RangeCells, ListCells
+         and SubstCells
+    '''
+    def __init__(self, loc, row, parts, **kwargs):
+        ''' create a cell containing subcomponents
+              when called from Cell.factory(), parts will be strings
+              when called from subclass (super().__init__(...),
+                parts will be Cells
+        '''
+        # pylint: disable=too-many-arguments
+        if parts and isinstance(parts[0], str):
+            cells = []
+            sloc = loc.copy()
+            for nth, part in enumerate(parts):
+                sloc['arg'] = nth
+                cells.append(Cell.factory(sloc, row, part))
+        else:
+            cells = parts
+
+        super().__init__(loc, row, cells, **kwargs)
+
+    def __getitem__(self, key):
+        return self._value[key]
+
+    def __call__(self, arg=None, syms=None):
+        ''' eval.  value is a list of the value of the sub-cells
+            - arg=None: provided by caller
+            - return: constituent list, all items evaluated
+        '''
+        return [val(arg, syms) for val in self[:]]
+
+    def __str__(self):
+        return ';'.join(['%s' % var for var in self[:]])
+
+
+class RangeCell(CListCell):
+    ''' class for v..v cells
+    '''
+    def __init__(self, loc, row, parts):
+        ''' construct a RangeCell
+              ListCell constructor handles the parsing of sub-components
+        '''
+        # pylint: disable=too-many-arguments
+        super().__init__(loc, row, parts)
+
+    def __call__(self, arg=None, syms=None):
+        ''' evaluates to a range()
+            - tab: subst context provider
+            - arg: passthru to context
+        '''
+        vals = super().__call__(arg)
+
+        if all([isinstance(val, int) for val in vals]):
+            return range(vals[0], vals[1])
+
+        raise ValueError(
+            '%s: cannot make range from [%s, %s]' % (
+                self._loc, vals[0], vals[1]))
+
+    def __str__(self):
+        return '..'.join(['%s' % val for val in self._value])
 
 
 class CellIterator(object):
@@ -134,7 +284,7 @@ class CellIterator(object):
 
         nextc = self.peek()
 
-        if nextc in '(><#~&|-)':
+        if nextc in '(><#~&|-)!]@$:':
             self.advance(1)
             # substitution character
             return nextc
@@ -167,139 +317,7 @@ class CellIterator(object):
         self._buf = self._buf[count:]
 
 
-class Cell(object):
-    ''' A Cell in our model
-    '''
-    @classmethod
-    def factory(cls, loc, row, buf, number=False, base=10):
-        ''' arrange to create an instance of Cell or subclass
-            - loc: [f, r, c] location of this cell
-            - buf: current cell or sub-cell contents
-            - raise: ValueError on transitive '..'
-            - return: an instance of a Cell subclass
-        '''
-        print('buf %s is a %s' % (buf, type(buf)))
-        buf = buf.lstrip().rstrip()
-
-        if buf.startswith('@'):
-            # forced literal, save
-            return Cell(loc, row, buf[1:])
-
-        if buf.startswith('#'):
-            # comment, no value
-            return Cell(loc, row, None)
-
-        parts = buf.split(';')
-        if len(parts) > 1:
-            # each part is its own cell
-            return ListCell(loc, row, parts)
-
-        parts = buf.split('..')
-        if len(parts) == 2:
-            # range expression
-            return RangeCell(loc, row, parts)
-        elif len(parts) > 2:
-            raise ValueError(
-                '%s: range cell syntax error: %s' % (
-                    loc, buf))
-
-        if buf.startswith('('):
-            # cell is a substitution
-            #  parse to internal represenation
-            return SubstCell.factory(
-                loc, row, CellIterator(buf[1:]))
-
-        # literal
-        return Cell(loc, row, buf)
-
-    def __init__(self, loc, row, val, number=False, base=10):
-        ''' default ctor for all subclasses
-            - loc: [f, r, c, [s]] location of this cell
-            - row: reference to row holding this cell
-            - val: value to store
-        '''
-        self._loc = loc.copy()
-        self._row = row
-        if isinstance(val, str):
-            self._value = encast(val, number, base)
-        else:
-            self._value = val
-
-    def __str__(self):
-        return '%s' % self._value
-
-    def __call__(self, arg=None, syms=None):
-        ''' default evaluator
-            - arg=None: optional arg or context dictionary
-            - return: current value of _value
-        '''
-        # Cell is stupid.  Just give them the value
-        return self._value
-
-
-class ListCell(Cell):
-    ''' a cell which is a list of cells, used for RangeCells, ListCells
-         and SubstCells
-    '''
-    def __init__(self, loc, row, parts, number=False, base=10):
-        ''' create a cell containing subcomponents
-              when called from Cell.factory(), parts will be strings
-              when called from subclass (super().__init__(...),
-                parts will be Cells
-        '''
-        if parts and isinstance(parts[0], str):
-            cells = []
-            sloc = loc.copy()
-            for nth, part in enumerate(parts):
-                sloc['arg'] = nth
-                cells.append(Cell.factory(sloc, row, part, number, base))
-        else:
-            cells = parts
-
-        super().__init__(loc, row, cells, number, base)
-
-    def __call__(self, arg=None, syms=None):
-        ''' eval.  value is a list of the value of the sub-cells
-            - arg=None: provided by caller
-            - return: constituent list, all items evaluated
-        '''
-        return [val(arg, syms) for val in self._value]
-
-    def __getitem__(self, key):
-        return self._value[key]
-
-    def __str__(self):
-        return ';'.join(['%s' % var for var in self._value])
-
-
-class RangeCell(ListCell):
-    ''' class for v..v cells
-    '''
-    def __init__(self, loc, row, parts):
-        ''' construct a RangeCell
-              ListCell constructor handles the parsing of sub-components
-        '''
-        # pylint: disable=too-many-arguments
-        super().__init__(loc, row, parts)
-
-    def __call__(self, arg=None, syms=None):
-        ''' evaluates to a range()
-            - tab: subst context provider
-            - arg: passthru to context
-        '''
-        vals = super().__call__(arg)
-
-        if all([isinstance(val, int) for val in vals]):
-            return range(vals[0], vals[1])
-
-        raise ValueError(
-            '%s: cannot make range from [%s, %s]' % (
-                self._loc, vals[0], vals[1]))
-
-    def __str__(self):
-        return '..'.join(['%s' % val for val in self._value])
-
-class SubstCell(ListCell):
+class SubstCell(CListCell):
     ''' abstract base class of all substitutions
     '''
     @classmethod
@@ -310,37 +328,69 @@ class SubstCell(ListCell):
             - row: row holding this cell
             - citer: CellIterator - token provider
         '''
+        if isinstance(citer, str):
+            citer = CellIterator(citer)
+
         # pylint: disable=too-many-arguments
         sigils = {
             # OpCells
-            '+':  AddCell,      # (+ v...):  additions
-            '&':  AndCell,      # (& v...):  bitwise AND
-            '*':  MulCell,      # (* v...):  multiplication
-            '~':  NotCell,      # (~ v...):  bitwise NOT
-            '|':  OrCell,       # (| v...):  bitwise OR
-            '%':  PasteCell,    # (% v...):  token pasting
-            '<':  ShiftCell,    # (<< v...): bitwise shift left
-            '>':  ShiftCell,    # (>> v...): bitwise shift right
-            '-':  SubCell,      # (- v...):  subtraction, unary negation
+            '+': AddCell,     # (+ v...):  additions
+            '&': AndCell,     # (& v...):  bitwise AND
+            '*': MulCell,     # (* v...):  multiplication
+            '~': NotCell,     # (~ v...):  bitwise NOT
+            '|': OrCell,      # (| v...):  bitwise OR
+            '%': PasteCell,   # (% v...):  token pasting
+            '<': ShiftLCell,  # (<< v...): bitwise shift left
+            '>': ShiftRCell,  # (>> v...): bitwise shift right
+            '-': SubCell,     # (- v...):  subtraction, unary negation
             # SubstCells
-            '#':  HexCell,      # (# v...):  hex values, hex strings
-            '=':  MatchCell,    # (= n t):   protocol matching
+            '#': HexCell,     # (# v...):  hex values, hex strings
+            '=': MatchCell,   # (= n t):   protocol matching
+            '!': ModCell,     # (! module): lookup
+            ']': TabCell,     # (] table):  lookup
+            '@': RowCell,     # (@ row):    lookup
+            '$': ColCell,     # ($ col):    lookup
+            ':': VarCell      # (: var):    lookup
         }
         nextc = citer.peek()
         try:
             subclass = sigils[nextc]
             next(citer)
+            if nextc in '<>':
+                next(citer)
         except KeyError:
-            # not listed, let VarCell figure it out
-            subclass = VarCell
+            # not listed, plain old ListCell
+            subclass = ListCell
 
-        return subclass(loc, row, citer)
+        numreq = nextc in '+&*~|<>-'
+        radreq = 16 if nextc is '#' else 10
 
-    def __init__(self, loc, row, citer, number=False, base=10):
+        args = []
+        # parse substitution arguments
+        sloc = loc.copy()
+        for nth, token in enumerate(citer):
+            sloc['arg'] = nth
+            if token == '(':
+                # arg is itself a substitution
+                args.append(
+                    SubstCell.factory(sloc, row, citer))
+
+            elif token == ')':
+                # end of substitution text
+                break
+
+            else:
+                # plain old cell
+                args.append(
+                    Cell(sloc, row, token, number=numreq, base=radreq))
+
+        return subclass(loc, row, args)
+
+    def __init__(self, loc, row, args, **kwargs):
         ''' ctor.  make a list of cells from citer
             - loc: [f, r, c [,s]] for diagnosics
             - row: row holding this cell
-            - citer: CellIterator
+            - args: cell subcomponents
             - number=False: require numeric value
             - base=10: radix.  will be 16 for (#v...)
         '''
@@ -350,55 +400,52 @@ class SubstCell(ListCell):
             raise sysex.CellError(
                 '%s: attempt to instantiate abstract SubstCell', loc)
 
-        parts = []
-        # parse substitution arguments
-        sloc = loc.copy()
-        for nth, token in enumerate(citer):
-            sloc['arg'] = nth
-            if token == '(':
-                # arg is itself a substitution
-                parts.append(
-                    SubstCell.factory(sloc, row, citer, number, base))
-
-            elif token == ')':
-                # end of substitution text
-                break
-
-            else:
-                # plain old cell
-                parts.append(
-                    Cell(sloc, row, token, number, base))
-
         # substitutions are just lists with semantics applied
         #  by the derived class
-        super().__init__(loc, row, parts, number, base)
+        super().__init__(loc, row, args, **kwargs)
+
+
+class ListCell(SubstCell):
+    ''' ListCell with a (...) external representation
+    '''
+    def __init__(self, loc, row, args, **kwargs):
+        super().__init__(loc, row, args, **kwargs)
+
+    def __str__(self):
+        ''' intercept for special list representation
+        '''
+        return '(' + ' '.join(['%s' % val for val in self[:]]) + ')'
 
 
 ##
 ## OpCells: implement unary and binary operators
 ##
 
+def _null_job(left, right):
+    ''' default job.  subclass must set something better
+          raise is a statement, not an expression: can't lambda
+    '''
+    # pylint: disable=unused-argument
+    raise NotImplementedError
+
+
 class OpCell(SubstCell):
     ''' Operator cells that can take an argument
     '''
-    def __init__(self, loc, row, citer, number=True, base=10):
+    def __init__(
+            self, loc, row, args, **kwargs):
         ''' specialize by adding a seed and a job
         '''
-        # pylint: disable=unidiomatic-typecheck
+        # pylint: disable=unidiomatic-typecheck,too-many-arguments
         if type(self) is OpCell:
             # should only be called by subclasses
             raise sysex.CellError(
                 '%s: attempt to instantiate abstract OpCell', loc)
 
-        def blow(left, right):
-            ''' default job.  subclass must set something better
-            '''
-            # pylint: disable=unused-argument
-            raise NotImplementedError
-
-        super().__init__(loc, row, citer, number, base)
-        self._seed = 0
-        self._job = blow
+        super().__init__(loc, row, args, **kwargs)
+        self._seed = kwargs['seed']
+        self._job = kwargs['job']
+        self._sign = kwargs['sign']
 
     def __call__(self, arg=None, syms=None):
         if len(self._value) == 1:
@@ -409,56 +456,62 @@ class OpCell(SubstCell):
         # every subclass provides an operation-neutral starter value
         return functools.reduce(self._job, vals, self._seed)
 
+    def __str__(self):
+        result = '(%s ' % self._sign
+        result += ' '.join(['%s' % val for val in self._value])
+        result += ')'
+        return result
+
 
 class AddCell(OpCell):
     ''' implement (+ v v ...) substitution
     '''
-    def __init__(self, loc, row, citer, number=True, base=10):
-        super().__init__(loc, row, citer)
-        self._seed = 0
-        self._job = lambda x, y: x + y
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='+', seed=0, job=lambda x, y: x + y)
 
 
 class AndCell(OpCell):
     ''' implement (& v v ...)
     '''
-    def __init__(self, loc, row, citer, number=True, base=10):
-        super().__init__(loc, row, citer)
-        self._seed = 0xFFFFFFFF
-        self._job = lambda x, y: x & y
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='+', seed=0xFFFFFFFF, job=lambda x, y: x & y)
 
 
 class MulCell(OpCell):
     ''' implement (* v v ...)
     '''
-    def __init__(self, loc, row, citer, number=True, base=10):
-        super().__init__(loc, row, citer)
-        self._seed = 1
-        self._job = lambda x, y: x * y
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='*', seed=1, job=lambda x, y: x * y)
 
 
 class NotCell(OpCell):
     ''' implement (~ v)
     '''
-    def __init__(self, loc, row, citer):
-        super().__init__(loc, row, citer)
-        self._seed = 0
-        self._job = lambda x, y: ~y
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='~', seed=0, job=lambda x, y: ~y)
 
 
 class OrCell(OpCell):
     ''' implement (| v v ...) substitution
     '''
-    def __init__(self, loc, row, citer):
-        super().__init__(loc, row, citer)
-        self._seed = 0x00000000
-        self._job = lambda x, y: x | y
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='|', seed=0x00000000, job=lambda x, y: x | y)
 
 
 class PasteCell(OpCell):
     ''' class for (% s s ...) substitutions
     '''
-    def __init__(self, loc, row, citer, number=False, base=10):
+    def __init__(self, loc, row, args):
         ''' ctor
         '''
         def paste(left, right):
@@ -468,37 +521,36 @@ class PasteCell(OpCell):
             right = pmap[right] if right.startswith('%') else right
             return '%s%s' % (left, right)
 
-        super().__init__(loc, row, citer, number, base)
-        self._seed = ''
-        self._job = paste
+        super().__init__(
+            loc, row, args, number=False,
+            sign='%', seed='', job=paste)
 
 
-class ShiftCell(OpCell):
-    ''' implement (<< ...), (>> ...)
+class ShiftLCell(OpCell):
+    ''' implement (<< ...)
     '''
-    def __init__(self, loc, row, citer, number=False, base=10):
-        token = next(citer)
-        super().__init__(loc, row, citer, number, base)
-        self._seed = []
-        subop = {
-            '<': lambda x, y: x << y,
-            '>': lambda x, y: x >> y
-        }
-        try:
-            self._job = subop[token]
-        except KeyError as exc:
-            raise ValueError(
-                '%s: unknown substitution: [<>]%s' % (
-                    loc, token)) from exc
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='<<', seed=[], job=lambda x, y: y << x)
+
+
+class ShiftRCell(OpCell):
+    ''' implement (>> ...)
+    '''
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='>>', seed=[], job=lambda x, y: y >> x)
 
 
 class SubCell(OpCell):
     ''' implement (- v v ...)
     '''
-    def __init__(self, loc, row, citer, number=False, base=10):
-        super().__init__(loc, row, citer, number=False, base=10)
-        self._seed = 0
-        self._job = lambda x, y: x - y
+    def __init__(self, loc, row, args):
+        super().__init__(
+            loc, row, args,
+            sign='-', seed=0, job=lambda x, y: x - y)
 
 
 ##
@@ -508,8 +560,8 @@ class SubCell(OpCell):
 class HexCell(SubstCell):
     ''' implement (# vv ...), hex values, lists of hex values
     '''
-    def __init__(self, loc, row, citer):
-        super().__init__(loc, row, citer, number=True, base=16)
+    def __init__(self, loc, row, args):
+        super().__init__(loc, row, args, number=True, base=16)
 
     def __call__(self, arg=None, syms=None):
         if len(self._value) == 1:
@@ -530,8 +582,8 @@ class MatchCell(SubstCell):
     ''' implement (= n target)
     '''
     #
-    def __init__(self, loc, row, citer):
-        super().__init__(loc, row, citer)
+    def __init__(self, loc, row, args):
+        super().__init__(loc, row, args)
 
     def __call__(self, data, syms):
         ''' evaluate a cell that picks values out of data
@@ -620,88 +672,125 @@ class MatchCell(SubstCell):
 
         return bytec
 
+    def __str__(self):
+        return '(= ' + ' '.join(['%s' % var for var in self[:]]) + ')'
 
-class VarCell(SubstCell):
-    ''' class for (!..), (]...) (@...) and (...) constructs
-        !: module reference
-        ]: table reference, optional module qualifier
-        @: row reference, optional table qualifer
-        :: variable reference from dictionary
-        :  (no sigil) cell reference, optional row qualifier
+
+class RefCell(SubstCell):
+    ''' base class of all ref cells
     '''
-    def __init__(self, loc, row, citer):
-        def varx(params, syms):
-            ''' look up a variable in syms
-            '''
-            return syms[params[0][1:]]
-
-        def colx(params, syms):
-            ''' get Cell reference
-                - params: expanded substitution parameters
-                - arg: pass-thru
-            '''
-            # params: ([[[file] tab] row] col)
-            if len(params) > 1:
-                row = rowx(params[:-1], syms)
-
-            colid = params[-1]
-            return row.get(colid)
-
-        def rowx(params, syms):
-            ''' look up a row
-            '''
-            if len(params) > 1:
-                tab = tabx(params[:-1], syms)
-
-            rowid = params[-1]
-            if rowid == '@':
-                if self._row.tab.ident:
-                    rowid = self._row.tab.ident
-                else:
-                    rowid = 'ident'
-            elif rowid == '*':
-                rowid = self._row.tab.keyid
-
-            return tab.getrow(rowid, self._row)
-
-        def tabx(params, syms):
-            ''' look up a table
-            '''
-            if len(params) > 1:
-                mod = modx(params[:-1], syms)
-            else:
-                mod = self._row.tab.mod
-
-            return mod.tables(params[:-1])
-
-        def modx(params, syms=None):
-            ''' look up a module
-            '''
-            # pylint: disable=unused-argument
-            return sysex.modref(params[0])
-
-        nextc = citer.peek()
-        super().__init__(loc, row, citer)
-
-        methods = {
-            '!': modx,
-            ']': tabx,
-            '@': rowx,
-            ':': varx
-        }
-        try:
-            self._method = methods[nextc]
-        except KeyError:
-            self._method = colx
-
-    def __call__(self, arg=None, syms=None):
-        ''' reduce self.__value to a value or {mod,tab,row,cell} reference
-        '''
-        params = super().__call__(arg, syms)
-        return self._method(params, syms)
+    def __init__(self, loc, row, args, **kwargs):
+        super().__init__(loc, row, args, **kwargs)
+        self._mark = '?'
 
     def __str__(self):
-        return '(' + ' '.join(super().__call__()) + ')'
+        result = '(%s ' % self._mark
+        result += ' '.join(['%s' % val for val in self[:]])
+        result += ')'
+        return result
+
+
+class ModCell(RefCell):
+    ''' (! module)
+    '''
+    def __init__(self, loc, row, args):
+        super().__init__(loc, row, args)
+        self._mark = '!'
+
+    def __call__(self, arg=None, syms=None):
+        ''' look up a module
+        '''
+        # pylint: disable=unused-argument
+        return sysex.modref(self[0])
+
+
+class TabCell(RefCell):
+    ''' (] [mod] table)
+    '''
+    @classmethod
+    def tab(cls, row, names):
+        ''' look up a table by name, resolving module if needed
+        '''
+        if len(names) > 1:
+            mod = sysex.modref(names[0])
+        else:
+            mod = row.tab.mod
+
+        return mod.tabs[names[1]]
+
+    def __init__(self, loc, row, args, **kwargs):
+        super().__init__(loc, row, args, **kwargs)
+        self._mark = ']'
+
+    def __call__(self, arg=None, syms=None):
+        ''' look up a table
+        '''
+        return TabCell.tab(self._row, self[:])
+
+
+class RowCell(RefCell):
+    ''' (@ [[mod] tab] row)
+    '''
+    @classmethod
+    def row(cls, row, names):
+        ''' look up a row by name, resolving table if needed
+        '''
+        if len(names) > 1:
+            tab = TabCell.tab(row, names[:-1])
+        else:
+            tab = row.tab
+
+        rowid = names[-1]
+
+        # process shorthand references to cells in current row
+        if rowid == '@':
+            if row.tab.ident:
+                rowid = row.tab.ident
+            else:
+                rowid = 'ident'
+        elif rowid == '*':
+            rowid = row.tab.keyid
+
+        return tab.getrow(rowid, row)
+
+    def __init__(self, loc, row, args):
+        super().__init__(loc, row, args)
+        self._mark = '@'
+
+    def __call__(self, arg=None, syms=None):
+        ''' look up a row
+        '''
+        return RowCell.row(self._row, self[:])
+
+
+class ColCell(RefCell):
+    ''' ($ [[[mod] tab] row] col])
+    '''
+    def __init__(self, loc, row, args):
+        super().__init__(loc, row, args)
+        self._mark = '$'
+
+    def __call__(self, arg=None, syms=None):
+        ''' look up a cell
+        '''
+        if len(self[:]) > 1:
+            row = RowCell.row(self._row, self[:-1])
+        else:
+            row = self._row
+
+        return row.get(self[-1])
+
+
+class VarCell(RefCell):
+    ''' (:...)
+    '''
+    def __init__(self, loc, row, args):
+        super().__init__(loc, row, args)
+        self._mark = ':'
+
+    def __call__(self, arg=None, syms=None):
+        return syms[self[0][1:]]
+
 
 def run_test(context, test, value):
     ''' call the cell factory and print the results

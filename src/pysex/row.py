@@ -21,7 +21,7 @@
 ''' row.py - row of cells in our data model
 '''
 
-from pysex.cell import Cell
+from pysex.cell import Cell, ListCell
 
 class Row(object):
     ''' represents a table row
@@ -52,16 +52,16 @@ class Row(object):
             cloc['col'] = nth+1
             if colid == self.tab.elipse:
                 # syntactic sugar.
-                #   convert remaining cols to a 'x;y;z;t' cell
+                #   convert remaining cols to a '(x y z t)' cell
                 subcells = []
                 scloc = cloc.copy()
-                for ith, col in enumerate(data[nth:]):
+                for jth, col in enumerate(data[nth:]):
                     if not col:
                         # allow empty cells in elipical strings
                         continue
-                    scloc['arg'] = ith
+                    scloc['arg'] = jth
                     subcells.append(Cell.factory(scloc, self, col))
-                self.put(colid, Cell(cloc, self, subcells))
+                self.put(colid, ListCell(cloc, self, subcells))
                 break
 
             self.put(colid, Cell.factory(cloc, self, data[nth]))
@@ -118,7 +118,7 @@ class Row(object):
     def aswiki(self):
         ''' render a row as a row of a mediawiki table
         '''
-        result = '| |\n'
+        result = '|-\n| |\n'
         for colid in self.tab.meta.cols:
             if colid != '_PAD':
                 result += '| | %s\n' % self.get(colid)
