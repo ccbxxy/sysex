@@ -73,12 +73,12 @@ class TableMetaData(object):
             # non-unique identity row
             colid = colid[1:]
             prop = props[sigil]
-            propval = getattr(tab, prop)
+            propval = tab[prop]
             if propval:
                 raise ValueError(
                     '%s: %s and %s cannot both be %s cols' % (
                         self.tab.mod.loc, propval, colid, prop))
-            setattr(tab, prop, colid)
+            tab[prop] = colid
             return True
         return False
 
@@ -139,8 +139,8 @@ class Table(object):
         '''
         if self.keyid in self.index:
             raise KeyError(
-                'Table %s: duplicate value %s for key %s' % (
-                    self.meta.name, row.key, self.keyid))
+                '%s: table %s: duplicate value %s for key %s' % (
+                    self.mod.loc, self.meta.name, row.key, self.keyid))
         self.index[row.rkey] = row
         self._rows.append(row)
 
@@ -158,11 +158,6 @@ class Table(object):
 
             self._addrow(Row(self.mod.loc, self, line[1:]))
 
-        if self._rows:
-            return
-        else:
-            raise ModEndError
-
     def getrows(self, rowid, rqrow=None, colid=None, first=False):
         ''' return rows where rowid matches the key value
               filter by matches of rqrow in engine field
@@ -179,7 +174,7 @@ class Table(object):
 
         rows = []
         for row in self._rows:
-            if getattr(row, colid)() == rowid and row.in_engine(rqrow):
+            if row[colid]() == rowid and row.in_engine(rqrow):
                 if first:
                     return row
                 else:
@@ -210,17 +205,6 @@ class Table(object):
 
         return rows[0]
 
-    def __str__(self):
-        result = '  Table Name: %s\n' % self.meta.name
-        result += '    Colids: %s\n' % self.meta.cols
-        result += '    KeyId: (*)%s\n' % self.keyid
-        result += '    Ident: (@)%s\n' % self.ident
-        result += '    Rows:\n'
-        for row in self._rows:
-            result += '      %s\n' % row
-
-        return result
-
     def aswiki(self):
         ''' render a table as a mediawiki table
         '''
@@ -245,6 +229,25 @@ class Table(object):
             result += row.aswiki()
         result += '|}\n\n'
         return result
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __setitem__(self, item, val):
+        setattr(self, item, val)
+        return val
+
+    def __str__(self):
+        result = '  Table Name: %s\n' % self.meta.name
+        result += '    Colids: %s\n' % self.meta.cols
+        result += '    KeyId: (*)%s\n' % self.keyid
+        result += '    Ident: (@)%s\n' % self.ident
+        result += '    Rows:\n'
+        for row in self._rows:
+            result += '      %s\n' % row
+
+        return result
+
 
 # pylint: disable=too-few-public-methods
 
@@ -528,9 +531,9 @@ class VendorTable(Table):
         super().__init__(mod, meta)
         for row in self._rows:
             if row.mma_id[0] == 0x00:
-                setattr(row, '_idlen', 1)
+                row['_idlen'] = 1
             else:
-                setattr(row, '_idlen', 3)
+                row['_idlen'] = 3
 
     def mma_lookup(self, data):
         ''' return the row matching the first 1 or 3 bytes in

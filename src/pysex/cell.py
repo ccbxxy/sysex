@@ -218,8 +218,8 @@ class CListCell(Cell):
 
         super().__init__(loc, row, cells, **kwargs)
 
-    def __getitem__(self, key):
-        return self._value[key]
+    def __getitem__(self, item):
+        return self._value[item]
 
     def __call__(self, arg=None, syms=None):
         ''' eval.  value is a list of the value of the sub-cells
@@ -905,6 +905,7 @@ def units():
         "(>> 5 (#80))",
         "(- 5 (#A))",
         "(foo)",
+        "(foo bar)",
         "(:foo)",
         "($ mouse)",
         "(@ house)",
@@ -921,7 +922,8 @@ def units():
     for case in cases:
         try:
             run_test(next(tnum), case, arg, syms)
-        except ValueError:
+        except ValueError as exc:
+            print(exc)
             pass
 
 

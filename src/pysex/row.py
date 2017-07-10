@@ -46,7 +46,7 @@ class Row(object):
         for nth, colid in enumerate(tab.meta.cols):
             if colid == '_PAD':
                 # allow horizontal padding
-                self.put(colid, ' ')
+                self[colid] = ' '
                 continue
 
             cloc['col'] = nth+1
@@ -61,13 +61,13 @@ class Row(object):
                         continue
                     scloc['arg'] = jth
                     subcells.append(Cell.factory(scloc, self, col))
-                self.put(colid, ListCell(cloc, self, subcells))
+                self[colid] = ListCell(cloc, self, subcells)
                 break
 
-            self.put(colid, Cell.factory(cloc, self, data[nth]))
+            self[colid] = Cell.factory(cloc, self, data[nth])
 
         if tab.keyid:
-            self._keyed = self.get(tab.keyid)
+            self._keyed = self[tab.keyid]
 
     @property
     def key(self):
@@ -81,13 +81,13 @@ class Row(object):
         '''
         return self._keyed
 
-    def get(self, colid):
+    def __getitem__(self, colid):
         ''' return a specific cell
             - colid: cell identifier
         '''
         return getattr(self, colid)
 
-    def put(self, colid, acell):
+    def __setitem__(self, colid, acell):
         ''' replace the cell at colid
             - colid: item in row to update
             - acell: new cell
@@ -112,7 +112,7 @@ class Row(object):
         result = ''
         for colid in self.tab.meta.cols:
             if colid != '_PAD':
-                result += '| %s ' % self.get(colid)
+                result += '| %s ' % self[colid]
         return result
 
     def aswiki(self):
@@ -121,5 +121,5 @@ class Row(object):
         result = '|-\n| |\n'
         for colid in self.tab.meta.cols:
             if colid != '_PAD':
-                result += '| | %s\n' % self.get(colid)
+                result += '| | %s\n' % self[colid]
         return result

@@ -64,7 +64,7 @@ class Mod(object):
             'col': 0,
             'arg': 0
         }
-        self.tabs = collections.OrderedDict()
+        self._tabs = collections.OrderedDict()
         self._load(fpath)
         self.reader = None
         sysex.modreg(name, self)
@@ -96,36 +96,33 @@ class Mod(object):
                 if line[0].startswith(']'):
                     if not line[0][1:]:
                         raise sysex.TableMetadataError(
-                            'missing table name at %s' % self.loc)
+                            '%s: missing table name' % self.loc)
 
                     if not line[1]:
                         raise sysex.TableMetadataError(
-                            'missing table class at %s' % self.loc)
+                            '%s: missing table class' % self.loc)
 
+                    if not line[2]:
+                        raise sysex.TableMetadataError(
+                            '%s: missing table overlay' % self.loc)
+                    
                     meta.name = line[0][1:]
                     meta.cls  = line[1]
 
-                    if line[2] == 'None':
-                        meta.over = None
-                    else:
-                        # table says it's an overlay for another.
-                        #  capture contents as a Cell to allow
-                        #  (]tab) and (!mod tab) expansions
-                        cloc = copy.copy(self.loc)
-                        cloc['cell'] = 2
-                        meta.over = Cell(cloc, None, line[2])
+                    cloc = self.loc.copy()
+                    cloc['cell'] = 2
+                    meta.over = Cell(cloc, None, line[2])
                     continue
 
                 if line[0].startswith('*'):
                     if not meta.cls:
                         raise sysex.TableMetadataError(
-                            'missing table header at %s %s' % (
-                                self.loc, line))
+                            '%s: "*" but no table header' % self.loc)
 
                     meta.cols = line[1:]
                     cls = meta.cls
                     table = cls(self, meta)
-                    self.tabs[meta.name] = table
+                    self._tabs[meta.name] = table
                     setattr(self, meta.name, tab)
                     meta = tab.TableMetaData()
 
@@ -135,16 +132,20 @@ class Mod(object):
         # pylint: disable=no-self-use
         pass
 
-    def __str__(self):
-        result = 'Mod Name: %s' % self._name
-        for table in self.tabs:
-            result += '\n%s' % self.tabs[table]
-        return result
-
     def aswiki(self):
         ''' return a string representing a module in wiki markup
         '''
         result = '== Module: %s ==\n' % self._name
-        for table in self.tabs:
-            result += self.tabs[table].aswiki()
+        for table in self._tabs:
+            result += self[table].aswiki()
         return result
+
+    def __getitem__(self, tab):
+        return self._tabs[tab]
+    
+    def __str__(self):
+        result = 'Mod Name: %s' % self._name
+        for table in self._tabs:
+            result += '\n%s' % self[table]
+        return result
+
