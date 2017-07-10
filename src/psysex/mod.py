@@ -28,9 +28,9 @@ import csv
 import os
 import copy
 import collections
-from pysex import sysex
-from pysex import tab
-from pysex.cell import Cell
+from psysex import sysex
+from psysex import tab
+from psysex.cell import Cell
 
 __all__ = ['Mod']
 
@@ -43,7 +43,7 @@ class Mod(object):
             - name: dotted path to module
         '''
         try:
-            path = os.environ['PYSEX_MODS']
+            path = os.environ['PSYSEX_MODS']
         except KeyError:
             path = '.'
 

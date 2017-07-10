@@ -21,7 +21,7 @@
 ''' row.py - row of cells in our data model
 '''
 
-from pysex.cell import Cell, ListCell
+from psysex.cell import Cell, ListCell
 
 class Row(object):
     ''' represents a table row

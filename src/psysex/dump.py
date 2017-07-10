@@ -25,7 +25,7 @@
 # pylint: disable=bad-whitespace
 
 import contextlib
-from pysex import sysex
+from psysex import sysex
 
 SOX = 0xF0
 EOX = 0xF7

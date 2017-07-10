@@ -24,7 +24,7 @@
 '''
 
 #import sys
-#from pysex import mod
+#from psysex import mod
 
 if __name__ == '__main__':
     # pylint: disable=invalid-name

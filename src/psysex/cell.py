@@ -89,7 +89,7 @@
 
 import re
 import functools
-from pysex import sysex
+from psysex import sysex
 
 __all__ = ['Cell', 'ListCell']
 

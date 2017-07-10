@@ -24,10 +24,10 @@
 
 # pylint: disable=bad-whitespace
 
-from pysex import algo
-from pysex.row import Row
-from pysex.cell import Cell
-from pysex.sysex import SysexLookupError, ModEndError
+from psysex import algo
+from psysex.row import Row
+from psysex.cell import Cell
+from psysex.sysex import SysexLookupError, ModEndError
 
 __all__ = ['Table', 'TableMetaData', 'CLASSES']
 
