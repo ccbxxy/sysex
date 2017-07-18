@@ -1,20 +1,19 @@
 # yamaha,reface,,,,,,,,,
 ,,,,,,,,,,
-]TOC,TOCTable,None,,,,,,,,
+]TOC,TOC,None,,,,,,,,
 *,*device,chan,proto,layout,CCproto,RPNproto,NRPNproto,,,
-|,refaceCS,0,(]Proto),(]Layout),(]CC),{]RPN),(]NRPN),,,
-,,,,,,,,,,
+|,refaceYC,0,(]Proto),(]Layout),None,None,None,,,
 ,,,,,,,,,,
 ,,,,,,,,,,
 ]Proto,ProtoTable,None,,,,,,,,
 *,op,string...,,,,,,,,
-|,rq.bulk,(& (#20) (:chan)),(#7F 1C),,(#03),(#00 00 00),,,,
-|,rq.bulk.tg,(& (#20) (:chan)),(#7F 1C),,(#03),(#0E 0F 00),,,,
-|,send.bulk,(& (#10) (:chan)),(#7F 1C),(+ 3 :bytec),(#03),(:addr),(:data),(:csum),,
-|,recv.bulk,(= 1 (= 1 (#10) (>> 4 (&(#F0)))) (=1 chan (&(#0F)))),(#7F 1C),(= 2 :bytec),(= 1 :model),(=3 :addr),(= (- :bytec 3) :data),(=1 :csum),,
-|,rq.param,(& (#30) (:chan)),(#7F 1C),,(#03),(:addr),,,,
-|,send.param,(& (#10) (:chan)),(#7F 1C),,(#03),(:addr),(:data),,,
-|,recv.param,(= 1 (= 1 (#10) (>> 4 (&(#F0)))) (=1 chan (&(#0F)))),(#7F 1C),,(= 1 model),(=3 addr),(= 0 data),,,
+|,rq.bulk,(& (#20) (:chan)),(#7F 1C),,(#06),(#00 00 00),,,,
+|,rq.bulk.tg,(& (#20) (:chan)),(#7F 1C),,(#06),(#0E 0F 00),,,,
+|,send.bulk,(& (#10) (:chan)),(#7F 1C),(+ 3 (:bytec)),(#06),(:addr),(:data),(:csum),,
+|,recv.bulk,(= 1 (#10) (>> 4 (&(#F0))) (= 1 chan (&(#0F)))),(#7F 1C),(= 2 bytec),(= 1 model),(=3 addr),(= (- (:bytec) 3) data),(=1 csum),,
+|,rq.param,(& (#30) (:chan)),(#7F 1C),,(#06),(:addr),,,,
+|,send.param,(& (#10) (:chan)),(#7F 1C),,(#06),(:addr),(:data),,,
+|,recv.param,(= 1 (#10) (>> 4 (&(#F0))) (=1 chan (&(#0F)))),(#7F 1C),,(= 1 model),(=3 addr),(= 0 data),,,
 ,,,,,,,,,,
 ]Layout,MemoryMap,None,,,,,,,,
 *,*ident,name,addr,count,stride,submap,params,,,
@@ -24,48 +23,49 @@
 ,,,,,,,,,,
 ,,,,,,,,,,
 ]Part,MemoryMap,None,,,,,,,,
-*,id,offset,bytec,engine,name,range,render,scale,shift,units
+*,@ident,addr,name,count,stride,submap,params,,,
 #,,[30 00 00],,,,,,,,
-|,part.volume,(#00),1,cs,Volume,0..127,MIDI7,1,0,0..127
-|,reserved,(#01),1,cs,Reserved,None,None,None,None,None
-|,part.lfo.assign,(#02),1,cs,LFO Assign,0;1;2;3;4,MIDI7,1,0,off;amp;filter;pitch;osc
-|,part.lfo.depth,(#03),1,cs,LFO Depth,0..127,MIDI7,1,0,0..127
-|,part.lfo.speed,(#04),1,cs,LFO Speed,0..127,MIDI7,1,0,0..127
-|,part.portamento,(#05),1,cs,Portamento,0;1..127,MIDI7,1,0,poly;mono_time
-|,part.osc.type,(#06),1,cs,Oscillator Type,0;1;2;3;4,MIDI7,1,0,multisaw;pulse;osc_sync;ring_mod;FM
-|,part.osc.texture,(#07),1,cs,Oscillator Texture,0..127,MIDI7,1,0,0..127
-|,part.osc.modulation,(#08),1,cs,Oscillator Modulation,0..127,MIDI7,1,0,0..127
-|,part.filter.0.cutoff,(#09),1,cs,Filter Cutoff,0..127,MIDI7,1,0,0..127
-|,part.filter.0.resonance,(#0A),1,cs,Filter Resonance,0..127,MIDI7,1,0,0..127
-|,part.eg.0.amp_to_filter,(#0B),1,cs,EG Balance,0..127,MIDI7,1,0,AEGmax..FEGmax
-|,part.eg.0.attack,(#0C),1,cs,EG Attack,0..127,MIDI7,1,0,0..127
-|,part.eg.0.decay,(#0D),1,cs,EG Decay,0..127,MIDI7,1,0,0..127
-|,part.eg.0.sustain,(#0E),1,cs,EG Sustain,0..127,MIDI7,1,0,0..127
-|,part.eg.0.release,(#0F),1,cs,EG Release,0..127,MIDI7,1,0,0..127
-|,part.fx.0.type,(#10),1,cs,Effect Type,0;1;2;3;4,MIDI7,1,0,dist;cho;fla;pha;del;off
-|,part.fx.0.depth,(#11),1,cs,Effect Depth,0..127,MIDI7,1,0,0..127
-|,part.fx.0.rate,(#12),1,cs,Effect Rate,0..127,MIDI7,1,0,0..127
+|,part.volume,(#00),Volume,1,1,None,(@Param @),,,
+|,RESERVED,(#01),RESERVED,1,1,None,None,,,
+|,part.voice,(#02),Organ Voice,1,1,None,(@Param @),,,
+|,part.org.draw.1,(#03),Drawbar 16’,1,1,None,(@Param @),,,
+|,part.org.draw.2,(#04),Drawbar 5 1/3’,1,1,None,(@Param @),,,
+|,part.org.draw.3,(#05),Drawbar 8’,1,1,None,(@Param @),,,
+|,part.org.draw.4,(#06),Drawbar 4’,1,1,None,(@Param @),,,
+|,part.org.draw.5,(#07),Drawbar 2 2/3’,1,1,None,(@Param @),,,
+|,part.org.draw.6,(#08),Drawbar 2’,1,1,None,(@Param @),,,
+|,part.org.draw.7,(#09),Drawbar 1 3/5’,1,1,None,(@Param @),,,
+|,part.org.draw.8,(#0A),Drawbar 1 1/3’,1,1,None,(@Param @),,,
+|,part.org.draw.9,(#0B),Drawbar 1’,1,1,None,(@Param @),,,
+|,part.org.cv.sw,(#0C),Vibrato/Chorus,1,1,None,(@Param @),,,
+|,part.org.cv.depth,(#0D),Vib/Cho Depth,1,1,None,(@Param @),,,
+|,part.org.perc.sw,(#0E),Percussion On/Off,1,1,None,(@Param @),,,
+|,part.org.perc.harm,(#0F),Percussion Harmonic,1,1,None,(@Param @),,,
+|,part.org.perc.length,(#10),Percussion Length,1,1,None,(@Param @),,,
+|,part.org.rotary.speed,(#11),Rotary,1,1,None,(@Param @),,,
+|,part.distortion.level,(#12),Distortion,1,1,None,(@Param @),,,
+|,part.reverb.depth,(#13),Reverb Depth,1,1,None,(@Param @),,,
 ,,,,,,,,,,
 ,,,,,,,,,,
-]Params,ParamTable,,,,,,,,,
-*,id,offset,bytec,engine,name,range,render,scale,shift,units
-#,,[30 00 00],,,,,,,,
-|,part.volume,(#00),1,yc,Volume,0..127,MIDI7,1,0,0..127
-|,part.voice,(#02),1,yc,Voice,0..4,MIDI7,1,0,ham;vox;far;ace;yc
-|,part.org.draw.1,(#03),1,yc,Drawbar 16’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.2,(#04),1,yc,Drawbar 5 1/3’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.3,(#05),1,yc,Drawbar 8’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.4,(#06),1,yc,Drawbar 4’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.5,(#07),1,yc,Drawbar 2 2/3’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.6,(#08),1,yc,Drawbar 2’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.7,(#09),1,yc,Drawbar 1 3/5’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.8,(#0A),1,yc,Drawbar 1 1/3’,0..6,MIDI7,1,0,0..6
-|,part.org.draw.9,(#0B),1,yc,Drawbar 1’,0..6,MIDI7,1,0,0..6
-|,part.org.cv.sw,(#0C),1,yc,Vibrato/Chorus,0;1,MIDI7,1,0,vib;cho
-|,part.org.cv.depth,(#0D),1,yc,Vib/Cho Depth,0..4,MIDI7,1,0,0..4
-|,part.org.perc.sw,(#0E),1,yc,Percussion On/Off,0;1,MIDI7,1,0,off;on
-|,part.org.perc.harm,(#0F),1,yc,Percussion Harmonic,0;1,MIDI7,1,0,2nd;3rd
-|,part.org.perc.length,(#10),1,yc,Percussion Length,0..4,MIDI7,1,0,0..4
-|,part.org.rotary.speed,(#11),1,yc,Rotary,0;1;2;3,MIDI7,1,0,off;stop;slow;fast;first
-|,part.distortion.level,(#12),1,yc,Distortion,0..127,MIDI7,1,0,0..127
-|,part.reverb.level,(#13),1,yc,Reverb Level,0..127,MIDI7,1,0,0..127
+]Param,ParamTable,None,,,,,,,,
+*,@ident,engine,name,bytec,range,render,scale,shift,value,units
+|,part.volume,None,Volume,1,0..127,MIDI7,(* 1),(+ 0),,0..127
+#,,,RESERVED,,,,,,,
+|,part.voice,None,Organ Voice,1,0..4,MIDI7,(* 1),(+ 0),0,ham;vox;far;ace;yc
+|,part.org.draw.1,None,Drawbar 16’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.2,None,Drawbar 5 1/3’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.3,None,Drawbar 8’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.4,None,Drawbar 4’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.5,None,Drawbar 2 2/3’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.6,None,Drawbar 2’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.7,None,Drawbar 1 3/5’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.8,None,Drawbar 1 1/3’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.draw.9,None,Drawbar 1’,1,0..6,MIDI7,(* 1),(+ 0),6,up..down
+|,part.org.cv.sw,None,Vibrato/Chorus,1,0;1,MIDI7,(* 1),(+ 0),0,vib;cho
+|,part.org.cv.depth,None,Vib/Cho Depth,1,0..4,MIDI7,(* 1),(+ 0),0,0..4
+|,part.org.perc.sw,None,Percussion On/Off,1,0;1,MIDI7,(* 1),(+ 0),0,off;on
+|,part.org.perc.harm,None,Percussion Harmonic,1,0;1,MIDI7,(* 1),(+ 0),0,2nd;3rd
+|,part.org.perc.length,None,Percussion Length,1,0..4,MIDI7,(* 1),(+ 0),0,0..4
+|,part.org.rotary.speed,None,Rotary,1,0;1;2;3,MIDI7,(* 1),(+ 0),2,off;stop;slow;fast;first
+|,part.distortion.level,None,Distortion,1,0..127,MIDI7,(* 1),(+ 0),0,0..127
+|,part.reverb.depth,None,Reverb Depth,1,0..127,MIDI7,(* 1),(+ 0),0,0..127

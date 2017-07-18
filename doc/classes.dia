@@ -126,12 +126,12 @@
         <dia:point val="8.5,5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="8.5,4.38638;10.8486,5.18725"/>
+        <dia:rectangle val="8.5,4.38638;9.87112,5.18725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
           <dia:attribute name="string">
-            <dia:string>#Module#</dia:string>
+            <dia:string>#Mod#</dia:string>
           </dia:attribute>
           <dia:attribute name="font">
             <dia:font family="sans" style="0" name="Helvetica"/>
@@ -159,7 +159,7 @@
         <dia:point val="8.5,11.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="8.48137,10.6996;14.77,12.3004"/>
+        <dia:rectangle val="8.5,10.7275;14.77,12.2725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -174,7 +174,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="8.5,11.3132"/>
+            <dia:point val="8.5,11.3225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -291,12 +291,12 @@ tabs[name]:#</dia:string>
         <dia:point val="22.5,9"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="22.5,8.405;24.1575,9.15"/>
+        <dia:rectangle val="22.5,8.38637;23.6036,9.18725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
           <dia:attribute name="string">
-            <dia:string>#Table#</dia:string>
+            <dia:string>#Tab#</dia:string>
           </dia:attribute>
           <dia:attribute name="font">
             <dia:font family="sans" style="0" name="Helvetica"/>
@@ -324,7 +324,7 @@ tabs[name]:#</dia:string>
         <dia:point val="22.5,18.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="22.5,18.0996;24.7286,18.9004"/>
+        <dia:rectangle val="22.5,18.1275;24.71,18.8725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -338,7 +338,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="22.5,18.7132"/>
+            <dia:point val="22.5,18.7225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -390,7 +390,7 @@ tabs[name]:#</dia:string>
         <dia:point val="22.5,13"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="22.5,12.5996;30.1786,13.4004"/>
+        <dia:rectangle val="22.5,12.6275;30.16,13.3725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -404,7 +404,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="22.5,13.2132"/>
+            <dia:point val="22.5,13.2225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -850,7 +850,7 @@ tabs[name]:#</dia:string>
         <dia:point val="36.5,19.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="36.5,19.0996;42.8136,19.9004"/>
+        <dia:rectangle val="36.5,19.1275;42.795,19.8725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -864,7 +864,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="36.5,19.7132"/>
+            <dia:point val="36.5,19.7225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1338,7 +1338,7 @@ tabs[name]:#</dia:string>
         <dia:point val="10.5,13"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="10.5,12.5996;14.5986,13.4004"/>
+        <dia:rectangle val="10.5,12.6275;14.58,13.3725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1352,7 +1352,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="10.5,13.2132"/>
+            <dia:point val="10.5,13.2225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1371,7 +1371,7 @@ tabs[name]:#</dia:string>
         <dia:point val="24.5,20"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="24.5,19.5996;28.7111,20.4004"/>
+        <dia:rectangle val="24.5,19.6275;28.6925,20.3725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1385,7 +1385,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="24.5,20.2132"/>
+            <dia:point val="24.5,20.2225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1404,7 +1404,7 @@ tabs[name]:#</dia:string>
         <dia:point val="10.5,14.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="10.5,14.0996;11.5311,14.9004"/>
+        <dia:rectangle val="10.5,14.1275;11.5125,14.8725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1418,7 +1418,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="10.5,14.7132"/>
+            <dia:point val="10.5,14.7225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1437,7 +1437,7 @@ tabs[name]:#</dia:string>
         <dia:point val="24.5,21.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="24.4814,21.0996;25.5125,21.9004"/>
+        <dia:rectangle val="24.5,21.1275;25.5125,21.8725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1451,7 +1451,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="24.5,21.7132"/>
+            <dia:point val="24.5,21.7225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1470,7 +1470,7 @@ tabs[name]:#</dia:string>
         <dia:point val="38.5,21"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="38.5,20.5996;42.6511,21.4004"/>
+        <dia:rectangle val="38.5,20.6275;42.6325,21.3725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1484,7 +1484,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="38.5,21.2132"/>
+            <dia:point val="38.5,21.2225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1503,7 +1503,7 @@ tabs[name]:#</dia:string>
         <dia:point val="38.5,22.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="38.4814,22.0996;39.5125,22.9004"/>
+        <dia:rectangle val="38.5,22.1275;39.5125,22.8725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1517,7 +1517,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="38.5,22.7132"/>
+            <dia:point val="38.5,22.7225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1536,7 +1536,7 @@ tabs[name]:#</dia:string>
         <dia:point val="50.5,23"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="50.5,22.5996;56.2136,23.4004"/>
+        <dia:rectangle val="50.5,22.6275;56.195,23.3725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1550,7 +1550,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="50.5,23.2132"/>
+            <dia:point val="50.5,23.2225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1569,7 +1569,7 @@ tabs[name]:#</dia:string>
         <dia:point val="36.5,17.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="36.5,17.0996;43.2036,17.9004"/>
+        <dia:rectangle val="36.5,17.1275;43.185,17.8725"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
@@ -1583,7 +1583,7 @@ tabs[name]:#</dia:string>
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="36.5,17.7132"/>
+            <dia:point val="36.5,17.7225"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
@@ -1602,7 +1602,7 @@ tabs[name]:#</dia:string>
         <dia:point val="7.5,1.5"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="7.5,0.886375;13.7861,1.68725"/>
+        <dia:rectangle val="7.5,0.905;13.7675,1.65"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
