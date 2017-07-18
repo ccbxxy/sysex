@@ -21,7 +21,7 @@
 ''' row.py - row of cells in our data model
 '''
 
-from psysex.cell import Cell, ListCell
+from psysex import cell
 
 class Row(object):
     ''' represents a table row
@@ -30,7 +30,7 @@ class Row(object):
         ''' create a row
             - loc:  [mod, line]
             - tab:  parent table of the cell
-            - data: list of Cell
+            - data: list of AtomCell
         '''
         def nope(arg):
             ''' callable None, no key field in this table
@@ -60,11 +60,11 @@ class Row(object):
                         # allow empty cells in elipical strings
                         continue
                     scloc['arg'] = jth
-                    subcells.append(Cell.factory(scloc, self, col))
-                self[colid] = ListCell(cloc, self, subcells)
+                    subcells.append(cell.factory(scloc, self, col))
+                self[colid] = cell.factory(cloc, self, subcells)
                 break
 
-            self[colid] = Cell.factory(cloc, self, data[nth])
+            self[colid] = cell.factory(cloc, self, data[nth])
 
         if tab.keyid:
             self._keyed = self[tab.keyid]

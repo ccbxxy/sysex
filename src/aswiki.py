@@ -27,5 +27,10 @@ from psysex import mod
 if __name__ == '__main__':
     # pylint: disable=invalid-name
 
-    modref = mod.Mod(sys.argv[1])
+    try:
+        modref = mod.Mod(sys.argv[1])
+    except IndexError:
+        print('Usage: %s <module>' % sys.argv[0])
+        sys.exit(1)
+        
     print(modref.aswiki())

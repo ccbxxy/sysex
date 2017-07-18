@@ -24,14 +24,12 @@
 
 __all__ = [
     'modref', 'modreg',
-    'MASTER',
     'ModEndError',
     'SysexLookupError'
 ]
 
 # this maps names of Mods to corresponding instances
 _MODS = {}
-MASTER = 'master'
 
 class ModEndError(Exception):
     ''' gratuitous specialization
@@ -80,3 +78,5 @@ def modreg(name, ref):
         - ref:  module object
     '''
     _MODS[name] = ref
+
+

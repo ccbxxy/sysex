@@ -25,9 +25,8 @@
 # pylint: disable=bad-whitespace
 
 from psysex import algo
-from psysex.row import Row
-from psysex.cell import Cell
-from psysex.sysex import SysexLookupError, ModEndError
+from psysex import row
+from psysex.sysex import SysexLookupError
 
 __all__ = ['Table', 'TableMetaData', 'CLASSES']
 
@@ -133,16 +132,16 @@ class Table(object):
         self.meta.bind(self)
         self._load(mod.reader)
 
-    def _addrow(self, row):
-        ''' add a row
-            - row: an array of Cell
+    def _addrow(self, arow):
+        ''' add row
+            - arow: an array of Cell
         '''
         if self.keyid in self.index:
             raise KeyError(
                 '%s: table %s: duplicate value %s for key %s' % (
-                    self.mod.loc, self.meta.name, row.key, self.keyid))
-        self.index[row.rkey] = row
-        self._rows.append(row)
+                    self.mod.loc, self.meta.name, arow.key, self.keyid))
+        self.index[arow.rkey] = arow
+        self._rows.append(arow)
 
     def _load(self, reader):
         ''' read a table from csv.reader
@@ -156,7 +155,7 @@ class Table(object):
             if not line[0].startswith('|'):
                 return
 
-            self._addrow(Row(self.mod.loc, self, line[1:]))
+            self._addrow(row.Row(self.mod.loc, self, line[1:]))
 
     def getrows(self, rowid, rqrow=None, colid=None, first=False):
         ''' return rows where rowid matches the key value
@@ -173,12 +172,12 @@ class Table(object):
             colid = 'ident' if self.ident is None else self.ident
 
         rows = []
-        for row in self._rows:
-            if row[colid]() == rowid and row.in_engine(rqrow):
+        for arow in self._rows:
+            if arow[colid]() == rowid and arow.in_engine(rqrow):
                 if first:
-                    return row
+                    return arow
                 else:
-                    rows.append(row)
+                    rows.append(arow)
 
         if not rows:
             # dig deeper?
@@ -225,8 +224,8 @@ class Table(object):
             if colid == '_PAD':
                 continue
             result += '! style="text-align:left"| %s\n' % colid
-        for row in self._rows:
-            result += row.aswiki()
+        for arow in self._rows:
+            result += arow.aswiki()
         result += '|}\n\n'
         return result
 
@@ -243,8 +242,8 @@ class Table(object):
         result += '    KeyId: (*)%s\n' % self.keyid
         result += '    Ident: (@)%s\n' % self.ident
         result += '    Rows:\n'
-        for row in self._rows:
-            result += '      %s\n' % row
+        for arow in self._rows:
+            result += '      %s\n' % arow
 
         return result
 
@@ -308,36 +307,6 @@ class FMTable(Table):
     def __init__(self, mod, meta):
         super().__init__(mod, meta)
 
-    def _flatten(self, ops):
-        ''' convert cells to a simple array
-        '''
-        result = []
-        for oper in ops:
-            operval = oper()
-            if isinstance(operval, Cell):
-                result.append(self._flatten(operval))
-            else:
-                result.append(operval)
-
-        return result
-
-    def _distances(self, nop, oper):
-        ''' for operator nop, return the maximum distance between this
-              operator and operators that it modulates
-        '''
-        # pylint: disable=no-self-use
-        dist = set()
-        if isinstance(oper, list):
-            for anop in oper:
-                dist.add(nop - anop)
-        else:
-            dist.add(nop-oper)
-
-        return dist
-
-    def pic(self, rowid):
-        ''' render as a string
-        '''
 
 
 @registered
@@ -417,7 +386,7 @@ class ParamTable(Table):
               byte or bytes
         '''
         # get the row
-        row = self.get1row(rowid, rqrow)
+        arow = self.get1row(rowid, rqrow)
 
         # if scale is (* val), scaling is done in MulCell
         # if scale is (]tab), scaling is done in ValueTable
@@ -425,23 +394,23 @@ class ParamTable(Table):
         # remember: scale and shift are cells in the current row
         #  and that () gets the value of a cell
         #
-        return row.scale(
-            row.shift(
-                algo.tovalue(row.render(), midi)))
+        return arow.scale(
+            arow.shift(
+                algo.tovalue(arow.render(), midi)))
 
     def midi(self, rowid, rqrow, val):
         ''' convert value to a MIDI bytes
         '''
-        row = self.get1row(rowid, rqrow)
+        arow = self.get1row(rowid, rqrow)
 
         # unscale
-        scale = row.scale()
+        scale = arow.scale()
         val = val / scale
 
         # unshift
-        shift = row.shift()
+        shift = arow.shift()
         val =- shift
-        return algo.tomidi(row.render(), val, row.bytec())
+        return algo.tomidi(arow.render(), val, arow.bytec())
 
     def vrange(self, rowid):
         ''' return the endpoints of the scaled range values
@@ -466,7 +435,7 @@ class TGTable(Table):
 
 
 @registered
-class TOCTable(Table):
+class TOC(Table):
     ''' table of contents for a module
     '''
     def __init__(self, mod, meta):
@@ -491,16 +460,16 @@ class ValueTable(Table):
         #   pylint doesn't know cells
 
         # find the rows between which the midi byte falls
-        ilast = flast = row = 0
-        for row in self._rows:
-            idata = row.idata()
+        ilast = flast = arow = 0
+        for arow in self._rows:
+            idata = arow.idata()
             if idata > data:
                 break
             ilast = idata
-            flast = row.fdata()
+            flast = arow.fdata()
 
         # interpolate
-        return round(row.scale() * (data - ilast) + flast, row.prec())
+        return round(arow.scale() * (data - ilast) + flast, arow.prec())
 
     def midi(self, value):
         ''' sparse lookup with interpolation
@@ -510,17 +479,17 @@ class ValueTable(Table):
         #   pylint doesn't know cells
 
         # find the rows between which the provided value falls
-        dlast = flast = row = 0
-        for row in self._rows:
-            fdata = row.fdata()
+        dlast = flast = arow = 0
+        for arow in self._rows:
+            fdata = arow.fdata()
             if fdata > value:
                 break
             flast = fdata
-            dlast = row.idata()
+            dlast = arow.idata()
 
         # interpolate
         return int(
-            round(row.scale() * (value - flast) + dlast, 0))
+            round(arow.scale() * (value - flast) + dlast, 0))
 
 
 @registered
@@ -529,20 +498,20 @@ class VendorTable(Table):
     '''
     def __init__(self, mod, meta):
         super().__init__(mod, meta)
-        for row in self._rows:
-            if row.mma_id[0] == 0x00:
-                row['_idlen'] = 1
+        for arow in self._rows:
+            if arow.mma_id[0] == 0x00:
+                arow['_idlen'] = 1
             else:
-                row['_idlen'] = 3
+                arow['_idlen'] = 3
 
     def mma_lookup(self, data):
         ''' return the row matching the first 1 or 3 bytes in
               the data stream
         '''
         idlen = 1 if data[0] == 0x00 else 3
-        row = self.get1row(data[0:idlen], rqrow=None, colid='mma_id')
+        arow = self.get1row(data[0:idlen], rqrow=None, colid='mma_id')
         self.eat_id(data, idlen)
-        return row
+        return arow
 
     def eat_id(self, data, idlen=None):
         ''' consume the ID from the data buffer

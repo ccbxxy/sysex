@@ -26,11 +26,10 @@
 
 import csv
 import os
-import copy
 import collections
 from psysex import sysex
 from psysex import tab
-from psysex.cell import Cell
+from psysex import cell
 
 __all__ = ['Mod']
 
@@ -78,43 +77,49 @@ class Mod(object):
             meta = tab.TableMetaData()
             for line in self.reader:
                 self.loc['row'] += 1
+                try:
+                    col_a, col_b, col_c = line[0:3]
+                except ValueError as exc:
+                    raise sysex.TableMetadataError(
+                        '%s: row has fewer than 3 columns' % (
+                            self.loc)) from exc
 
-                if line[0].startswith('!END'):
+                if col_a.startswith('!END'):
                     return
 
-                if line[0].startswith('#'):
+                if col_a.startswith('#'):
                     continue
 
-                if line[0].startswith('|'):
+                if col_a.startswith('|'):
                     raise sysex.TableMetadataError(
                         'missing table header at %s' % self.loc)
 
-                if line[0].startswith(']]'):
+                if col_a.startswith(']]'):
                     meta.desc = line[1:]
                     continue
 
-                if line[0].startswith(']'):
-                    if not line[0][1:]:
+                if col_a.startswith(']'):
+                    if not col_a[1:]:
                         raise sysex.TableMetadataError(
                             '%s: missing table name' % self.loc)
 
-                    if not line[1]:
+                    if not col_b:
                         raise sysex.TableMetadataError(
                             '%s: missing table class' % self.loc)
 
-                    if not line[2]:
+                    if not col_c:
                         raise sysex.TableMetadataError(
                             '%s: missing table overlay' % self.loc)
-                    
-                    meta.name = line[0][1:]
-                    meta.cls  = line[1]
+
+                    meta.name = col_a[1:]
+                    meta.cls  = col_b
 
                     cloc = self.loc.copy()
                     cloc['cell'] = 2
-                    meta.over = Cell(cloc, None, line[2])
+                    meta.over = cell.factory(cloc, None, col_c)
                     continue
 
-                if line[0].startswith('*'):
+                if col_a.startswith('*'):
                     if not meta.cls:
                         raise sysex.TableMetadataError(
                             '%s: "*" but no table header' % self.loc)
@@ -140,9 +145,9 @@ class Mod(object):
             result += self[table].aswiki()
         return result
 
-    def __getitem__(self, tab):
-        return self._tabs[tab]
-    
+    def __getitem__(self, tabname):
+        return self._tabs[tabname]
+
     def __str__(self):
         result = 'Mod Name: %s' % self._name
         for table in self._tabs:
