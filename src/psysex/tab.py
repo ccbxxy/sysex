@@ -179,18 +179,19 @@ class Table(object):
                 else:
                     rows.append(arow)
 
-        if not rows:
-            # dig deeper?
-            parent = self.meta.over()
-            if parent:
-                return parent.getrows(rowid, rqrow, colid, first)
-            else:
-                raise SysexLookupError(
-                    'row', self.meta.name,
-                    'no values found',
-                    (rowid, rqrow, colid))
-        else:
+        if rows:
             return rows
+        
+        # dig deeper?
+        parent = self.meta.over()
+        if parent:
+            return parent.getrows(rowid, rqrow, colid, first)
+        else:
+            raise SysexLookupError(
+                'row', self.meta.name,
+                'no values found',
+                (rowid, rqrow, colid))
+
 
     def get1row(self, rowid, rqrow, colid=None):
         ''' get a unique row, qualified by rowid and membership of

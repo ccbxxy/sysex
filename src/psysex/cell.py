@@ -376,7 +376,7 @@ class ListCell(CListCell):
             if nextc in '<>':
                 next(citer)
         except KeyError:
-            # not listed, plain
+            # not listed, must be a List
             subclass = cls
 
         numreq = nextc in '+&*~|<>-'

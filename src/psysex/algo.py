@@ -96,8 +96,9 @@ class AKAISCIIRender(Render):
 
         try:
             return AKAISCIIRender.charmap[val]
-        except KeyError:
-            raise ValueError('unrecognized Akai char value: %d' % val)
+        except KeyError as exc:
+            raise ValueError(
+                'unrecognized Akai char value: %d' % val) from exc
 
     def tovalue(self, midi):
         if midi in range(0x30, 0x3A):
@@ -246,9 +247,9 @@ def _xform(fun, name, *args):
         _RINSTANCES[name] = _RCLASSES[name]()
         return _xform(fun, name, args)
 
-    except KeyError:
+    except KeyError as exc:
         raise ValueError(
-            'unknown renderer class: %s' % name)
+            'unknown renderer class: %s' % name) from exc
 
 def tomidi(name, val, bytec):
     ''' dispatch a value to MIDI transform
@@ -404,9 +405,9 @@ def sniff(vendor, dev, data):
     '''
     try:
         return _SNIFFERS[vendor](dev, data)
-    except KeyError:
+    except KeyError as exc:
         raise ValueError(
-            'no sniffer registered for vendor %s' % vendor)
+            'no sniffer registered for vendor %s' % vendor) from exc
 
 def sniffers():
     ''' public interface: get a list of available sniffers
