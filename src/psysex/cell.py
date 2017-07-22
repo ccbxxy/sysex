@@ -291,7 +291,7 @@ class RangeCell(CListCell):
                 self._loc, vals[0], vals[1]))
 
     def __str__(self):
-        return '..'.join(['%s' % val for val in self._value])
+        return '..'.join(['%s' % val for val in self[:]])
 
 
 class CellIterator(object):
@@ -426,14 +426,6 @@ class ListCell(CListCell):
 
 
 ##  OpCells: implement unary and binary operators
-
-def _null_job(left, right):
-    ''' default job.  subclass must set something better
-          raise is a statement, not an expression: can't lambda
-    '''
-    # pylint: disable=unused-argument
-    raise NotImplementedError
-
 
 class OpCell(ListCell):
     ''' Operator cells that can take an argument
@@ -707,12 +699,16 @@ class HexCell(ListCell):
         '''
         return self.add(other)
 
-    def add(self, other, props=add_props()):
+    def add(self, other, props=None):
         ''' add with policy overrides - allows 8-bit ops
         '''
+        if props is None:
+            props = add_props()
+
         if isinstance(other, bytearray):
             # convert bytearray to array of ints
-            other = [ int(bbb.hex(), 16) for bbb in other.split()]
+            other = [ int(bbb.hex(), 16)
+                      for bbb in other.split() ]
         elif isinstance(other, HexCell):
             # convert HexCell to array of ints
             #  bypass single-element special case
@@ -727,8 +723,8 @@ class HexCell(ListCell):
         val = [val() for val in self[:]]
 
         # reverse each
-        other = [elt for elt in reversed(other)]
-        val = [elt for elt in reversed(val)]
+        other = list(reversed(other))
+        val = list(reversed(val))
 
         # zero-pad so they're the same length
         vlen, olen = len(val), len(other)
@@ -818,7 +814,7 @@ class MatchCell(ListCell):
                     '%s: byte stream mismatch: %s != %s' % (
                         self._loc, val, dest))
 
-        val = self._value       # need control over eval of sub components
+        val = self[:]       # need control over eval of sub components
 
         bytec, dest, rest = val[0], val[1], val[2:]
         bytec = bytec(data, syms)

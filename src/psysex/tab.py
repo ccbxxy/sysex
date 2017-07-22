@@ -181,7 +181,7 @@ class Table(object):
 
         if rows:
             return rows
-        
+
         # dig deeper?
         parent = self.meta.over()
         if parent:
@@ -354,7 +354,6 @@ class KeyTable(Table):
 @registered
 class ProtoTable(Table):
     ''' Device-specific Protocol
-          yeah, these are a good candidate for a class decorator
     '''
     def __init__(self, mod, meta):
         super().__init__(mod, meta)
@@ -511,19 +510,4 @@ class VendorTable(Table):
         '''
         idlen = 1 if data[0] == 0x00 else 3
         arow = self.get1row(data[0:idlen], rqrow=None, colid='mma_id')
-        self.eat_id(data, idlen)
         return arow
-
-    def eat_id(self, data, idlen=None):
-        ''' consume the ID from the data buffer
-        '''
-        # pylint: disable=no-self-use
-        #  SCOPE
-        if idlen is None:
-            idlen = 1 if data[0] == 0x00 else 3
-        del data[0:idlen]
-        return idlen
-
-
-
-# pylint: enable=too-few-public-methods
